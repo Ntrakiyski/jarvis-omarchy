@@ -84,6 +84,8 @@ class RealtimeSessionTests(unittest.IsolatedAsyncioTestCase):
 
         self.config = Config(dry_run=True, notify=False)
         self.session = realtime.RealtimeSession(self.config)
+        # Session protocol tests must not launch a real playback device.
+        self.session.speaker.write = mock.AsyncMock()
         self.socket = FakeSocket()
         self.session.ws = self.socket
 
@@ -265,6 +267,7 @@ class RealtimeSessionTests(unittest.IsolatedAsyncioTestCase):
             })
         self.assertEqual(self.session._audio_item_id, "item_2")
         self.assertEqual(self.session._audio_bytes, 3)
+        self.session.speaker.write.assert_awaited_with(b"\0" * 3)
 
     async def test_tool_loop_stops_at_max_turns(self):
         """The model must not be able to drive itself indefinitely.
@@ -301,6 +304,9 @@ class RealtimeSessionTests(unittest.IsolatedAsyncioTestCase):
         """
         from omarchy_voice.realtime import Speaker
         speaker = Speaker(24000)
+        proc = mock.Mock()
+        proc.stdin.drain = mock.AsyncMock()
+        speaker._ensure = mock.AsyncMock(return_value=proc)
         chunk = b"\x00\x01" * 2400          # 0.2 s of PCM16
         started = time.monotonic()
         for _ in range(25):                  # 5 s of audio
@@ -770,6 +776,13 @@ class AnnounceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.socket.events("response.create"), [])
 
 
+
+def idle_playback_task(coroutine):
+    """Suppress device playback while keeping an idle task for bookkeeping."""
+    coroutine.close()
+    return mock.Mock(done=mock.Mock(return_value=False))
+
+
 class EchoGateTests(unittest.TestCase):
     """Speaker playback must not be interpreted as fresh user input."""
 
@@ -781,7 +794,7 @@ class EchoGateTests(unittest.TestCase):
 
     def test_writing_audio_books_its_real_duration(self):
         """PCM16 mono: one second of 24 kHz is 48000 bytes."""
-        with mock.patch.object(realtime.asyncio, "create_task"):
+        with mock.patch.object(realtime.asyncio, "create_task", side_effect=idle_playback_task):
             asyncio.run(self.speaker.write(b"\0" * 48000))
         self.assertTrue(self.speaker.is_playing())
         self.assertAlmostEqual(self.speaker._plays_until - time.monotonic(), 1.0, delta=0.2)
@@ -789,7 +802,7 @@ class EchoGateTests(unittest.TestCase):
     def test_chunks_queue_up_rather_than_overwriting_each_other(self):
         """The model sends a reply far faster than it is spoken, so the gate
         has to track the whole backlog, not the newest chunk."""
-        with mock.patch.object(realtime.asyncio, "create_task"):
+        with mock.patch.object(realtime.asyncio, "create_task", side_effect=idle_playback_task):
             for _ in range(3):
                 asyncio.run(self.speaker.write(b"\0" * 24000))   # 0.5s each
         self.assertAlmostEqual(self.speaker._plays_until - time.monotonic(), 1.5, delta=0.3)
@@ -803,7 +816,7 @@ class EchoGateTests(unittest.TestCase):
     def test_a_barge_in_reopens_the_microphone_at_once(self):
         """Dropping queued audio means nothing more is coming out, so the gate
         must not stay shut for audio that will never be played."""
-        with mock.patch.object(realtime.asyncio, "create_task"):
+        with mock.patch.object(realtime.asyncio, "create_task", side_effect=idle_playback_task):
             asyncio.run(self.speaker.write(b"\0" * 480000))       # 10 seconds
         self.assertTrue(self.speaker.is_playing())
         self.speaker._drop_queued()
@@ -943,7 +956,7 @@ class MicrophoneGateTests(unittest.IsolatedAsyncioTestCase):
         levels = []
         session.feedback.level = lambda mic, voice=0.0: levels.append((mic, voice))
         # A second of her, loud, already booked for playback.
-        with mock.patch.object(realtime.asyncio, "create_task"):
+        with mock.patch.object(realtime.asyncio, "create_task", side_effect=idle_playback_task):
             await session.speaker.write(b"\x00\x20" * 24000)
 
         queue = [self.FRAME] * 3
@@ -992,7 +1005,7 @@ class SpeechMeterTests(unittest.TestCase):
         self.speaker = realtime.Speaker(rate=24000)
 
     def write(self, pcm):
-        with mock.patch.object(realtime.asyncio, "create_task"):
+        with mock.patch.object(realtime.asyncio, "create_task", side_effect=idle_playback_task):
             asyncio.run(self.speaker.write(pcm))
 
     QUIET = (0x0040).to_bytes(2, "little")      # below the meter's noise gate

@@ -6,12 +6,11 @@ This project does not promise that arbitrary model-generated actions are safe.
 
 ## Reporting a vulnerability
 
-If GitHub private vulnerability reporting is available, use the repository's
-Security tab to report privately. Otherwise open an issue asking for a private
-contact channel **without** including exploit details, credentials, transcripts,
-or private files. Do not post production logs publicly. Include the affected
-commit, a minimal synthetic reproduction, expected behavior, and impact through
-the private channel. No response-time SLA is currently offered; fixes target the
+Use [GitHub private vulnerability reporting](https://github.com/wombatoperator/omarchy-voice/security/advisories/new)
+to report a suspected vulnerability. Do not include exploit details, credentials,
+transcripts, or private files in a public issue. Include the affected commit, a
+minimal synthetic reproduction, expected behavior, and impact in the private
+report. No response-time SLA is currently offered; fixes target the
 latest source revision.
 
 ## Trust boundaries
@@ -71,5 +70,6 @@ Install local commit and push checks with `git config core.hooksPath .githooks`.
 The push hook checks the full ancestry of every pushed ref, including old local
 branches. Keep private conversation reviews and retired handoff files out of Git.
 This is a lightweight guard, not a comprehensive secret scanner. GitHub secret
-scanning and push protection should remain enabled. Run the unit suite and inspect
+scanning and push protection should remain enabled. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and optional checks.
+Run the unit suite and inspect
 any security-sensitive change to execution, file access, logging, or permissions.

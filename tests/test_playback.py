@@ -91,15 +91,47 @@ class PumpTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(speaker._pcm, b'')
 
 
+
+async def measure_playback(cls, label, skew=1.02):
+    speaker = cls(24000)
+    speaker._pump = mock.Mock(done=lambda: False)
+    # Three 3s speech bursts separated by 5s quiet; each burst has its own
+    # PCM value, so every spoken sample and any internal gap can be measured.
+    packets = []
+    for packet in range(240):
+        burst = packet // 80 + 1 if packet % 80 >= 50 else 0
+        pcm = int(burst * 4096).to_bytes(2, 'little') * 2400
+        arrival = packet * .1 * skew + (.08 if packet % 80 == 65 else 0)
+        packets.append((arrival, pcm, burst))
+    output = bytearray()
+    index = 0
+    with mock.patch('omarchy_voice.playback.time.monotonic') as clock:
+        # Baseline modules also import the shared time module.
+        for tick in range(1300):
+            now = tick * .02
+            clock.return_value = now
+            while index < len(packets) and packets[index][0] <= now + 1e-9:
+                await speaker.write(packets[index][1])
+                index += 1
+            pcm = speaker._next_frame(now)
+            if any(pcm):
+                speaker._audible_until = now + .06
+            output.extend(pcm)
+    samples = memoryview(output).cast('h')
+    bursts = []
+    for burst in (1, 2, 3):
+        positions = [i for i, value in enumerate(samples) if value == burst * 4096]
+        source_at = next(at for at, _, number in packets if number == burst)
+        bursts.append({'burst': burst, 'samples_preserved': len(positions) == 72000,
+                       'internal_gap_ms': round((positions[-1] - positions[0] + 1 - len(positions)) / 24, 1),
+                       'onset_after_first_packet_ms': round(positions[0] / 24 - source_at * 1000, 1)})
+    speaker._pump = None
+    await speaker.close()
+    return {'player': label, 'packet_pacing_ratio': skew, 'bursts': bursts}
+
 class QuietReserveTests(unittest.IsolatedAsyncioTestCase):
     async def test_slow_delivery_and_jitter_preserve_every_speech_burst(self):
-        import importlib.util
-        from pathlib import Path
-        path = Path(__file__).resolve().parents[1] / 'tools/bench_playback_reserve.py'
-        spec = importlib.util.spec_from_file_location('reserve_bench', path)
-        bench = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(bench)
-        result = await bench.measure(LiveSpeaker, 'test')
+        result = await measure_playback(LiveSpeaker, 'test')
         for burst in result['bursts']:
             self.assertTrue(burst['samples_preserved'])
             self.assertEqual(burst['internal_gap_ms'], 0)

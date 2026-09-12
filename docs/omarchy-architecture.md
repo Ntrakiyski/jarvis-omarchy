@@ -67,10 +67,6 @@ action acknowledgement.
 
 ## Evidence and limits
 
-On September 10, 2026, this machine's map found **367 public commands across
-63 groups**, **51 dispatcher names**, **61 visible applications**, and **39 shell
-plugin manifests**. These are an inventory snapshot, not hardcoded limits.
-
 - Commands come from `omarchy commands --json`, including public groups previously
   excluded from voice discovery. Administrator requirements remain visible.
   Discovery does not change execution permissions or confirmation rules.

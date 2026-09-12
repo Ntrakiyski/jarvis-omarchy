@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omarchy-voice"
+dynamic = ["version"]
+description = "Voice control and durable desktop tasks for Omarchy Linux"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "omarchy-voice contributors"}]
+dependencies = ["websockets>=14,<17"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Repository = "https://github.com/wombatoperator/omarchy-voice"
+Issues = "https://github.com/wombatoperator/omarchy-voice/issues"
+Documentation = "https://github.com/wombatoperator/omarchy-voice#readme"
+
+[project.scripts]
+omarchy-voice = "omarchy_voice.cli:main"
+
+[project.optional-dependencies]
+dev = ["build>=1.2"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["omarchy_voice*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "omarchy_voice.__version__"}

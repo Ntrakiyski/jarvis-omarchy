@@ -147,9 +147,8 @@ The Responses adapter rejects an incomplete response or malformed call batch
 before executing any call from that response. It permits one bounded attempt to
 produce a smaller complete call and records incomplete details. Completed calls
 have persisted IDs and argument fingerprints. Uncertain operations are not
-automatically replayed. For the previously recorded Live handoff error, the voice
-layer now invalidates the incomplete exchange while retaining the connection and
-durable tasks; other protocol errors retain their existing pause behavior.
+automatically replayed. For an incomplete Live handoff, the voice layer invalidates the exchange while
+retaining the connection and durable tasks; other protocol errors may pause it.
 
 **Configuration and costs**
 
@@ -170,7 +169,7 @@ user removes it.
 
 ```sh
 python3 -m unittest discover -s tests -p test_tasks.py -v
-python3 tools/bench_tasks.py
+python3 tools/check_tasks.py
 python3 -m unittest discover -s tests
 ```
 
@@ -181,7 +180,7 @@ and required verification. Real sandbox tests exercise numerical analysis, text
 processing and a simulation with standard-library Python, plus failed assertions,
 nonzero exits and timeouts.
 
-`bench_tasks.py` launches real temporary systemd workers with a **fake coding CLI**
+`check_tasks.py` launches real temporary systemd workers with a **fake coding CLI**
 and real sandboxed verification. It checks client reconstruction while work runs,
 idempotent submission, cancellation and resumption. It makes no API calls and
 does not invoke an installed coding agent. Its output is saved in the private
@@ -189,9 +188,8 @@ benchmark directory. Nested execution sandboxes can prevent bubblewrap's network
 namespace setup; run these checks in an environment that permits that feature,
 not by weakening the worker's sandbox.
 
-The initial verification establishes the toolkit mechanics. It does not establish
-that a paid model will autonomously complete an arbitrary experiment, that provider
-authentication succeeds, or that the original three-model GPU experiment passes.
+This check verifies worker mechanics, not provider authentication or a model's
+ability to complete arbitrary tasks.
 
 Back up installed source before upgrading. To roll back, stop or cancel active
 tasks using the current task CLI, restore the matching source version, and restart

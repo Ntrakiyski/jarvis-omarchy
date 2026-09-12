@@ -34,3 +34,8 @@ docs/bridge-mockup.html
 docs/omarchy-voice.html
 *.sqlite
 *.db
+
+# Python build output
+build/
+dist/
+*.egg-info/
