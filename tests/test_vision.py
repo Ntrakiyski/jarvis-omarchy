@@ -256,6 +256,22 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
                 await app.start("test", 0)
             start.assert_not_called()
 
+    async def test_lock_check_failure_stops_active_capture(self):
+        for error in (RuntimeError("Invalid lock response"), TimeoutError(), FileNotFoundError()):
+            with self.subTest(error=type(error).__name__):
+                app = vision_app.Companion(vision.settings(config.Config()))
+                app.camera.capture = mock.Mock(returncode=None)
+                app.camera.preview = mock.Mock(returncode=None)
+                app.camera.frame_at = time.monotonic()
+                app.previous = "Previous observation"
+                with mock.patch.object(vision_app, "locked", side_effect=error), \
+                     mock.patch.object(vision_app.asyncio, "sleep", new_callable=mock.AsyncMock), \
+                     mock.patch.object(app.camera, "stop", side_effect=app.done.set) as stop:
+                    await app.monitor()
+                    stop.assert_awaited_once()
+                self.assertEqual(app.reason, "lock state unavailable")
+                self.assertEqual(app.previous, "")
+
     async def test_stop_during_camera_start_cannot_revive_capture(self):
         app = vision_app.Companion(vision.settings(config.Config()))
         entered, release = asyncio.Event(), asyncio.Event()

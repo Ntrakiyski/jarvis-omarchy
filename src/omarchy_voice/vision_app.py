@@ -419,7 +419,7 @@ class Companion:
                     try:
                         if await locked():
                             reason = "session locked"
-                    except RuntimeError:
+                    except (RuntimeError, OSError, asyncio.TimeoutError):
                         reason = "lock state unavailable"
                 if reason:
                     await self.stop(reason)
