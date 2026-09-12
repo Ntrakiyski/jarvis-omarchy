@@ -477,13 +477,15 @@ class RealtimeSession:
     # -- session configuration ----------------------------------------------
     async def _instructions(self) -> str:
         from .tasks import ROUTING
+        from .vision import ROUTING as VISION_ROUTING
         manifest, live = await asyncio.gather(
             asyncio.to_thread(capabilities.manifest),
             asyncio.to_thread(capabilities.live_state),
         )
         self._state_refreshed = time.monotonic()
         return "\n\n".join([
-            PERSONA, REALTIME_PERSONA, ROUTING if self.config.tasks_enabled else "", manifest,
+            PERSONA, REALTIME_PERSONA, ROUTING if self.config.tasks_enabled else "",
+            VISION_ROUTING if self.config.vision_enabled else "", manifest,
             "# The desktop right now\n\n" + live,
         ])
 
@@ -799,6 +801,7 @@ class RealtimeSession:
             await self._commit_if_manual()
             await self._kill_mic()
             await self.speaker.interrupt()
+            await asyncio.to_thread(self.executor.vision.stop_owned)
         self.feedback.state("listening" if active else "idle")
         self.feedback.notify("Listening" if active else "Sleeping")
         self.feedback.log(f"gate    {'listening' if active else 'muted'}")
@@ -1287,6 +1290,7 @@ class RealtimeSession:
                 mic_task.cancel()
             await self._kill_mic()
             self.ws = None
+            await asyncio.to_thread(self.executor.vision.stop_owned)
 
     async def _read(self, ws) -> None:
         async for raw in ws:

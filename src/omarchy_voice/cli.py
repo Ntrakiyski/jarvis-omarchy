@@ -132,6 +132,16 @@ def cmd_status(args, config) -> int:
     return 0
 
 
+def cmd_vision(args, config) -> int:
+    from .vision import VisionClient
+    try:
+        print(json.dumps(VisionClient(config).call(args.action, " ".join(args.question), args.region), indent=2))
+        return 0
+    except (ValueError, RuntimeError, OSError) as exc:
+        print(f"Vision: {exc}", file=sys.stderr)
+        return 1
+
+
 def cmd_manifest(args, config) -> int:
     print(capabilities.manifest(refresh=args.refresh))
     if args.refresh:
@@ -148,6 +158,17 @@ def cmd_map(args, config) -> int:
 
 def cmd_doctor(args, config) -> int:
     print(_bold(f"omarchy-voice {__version__}\n"))
+
+    print(_bold("vision"))
+    from .vision import settings
+    try:
+        vision = settings(config)
+        print(f"  → {'enabled, capture off until requested' if vision['enabled'] else 'disabled'}; {vision['model']} via {vision['protocol']}")
+        for executable in ("ffmpeg", "ffplay"):
+            print(f"  {_tick(bool(shutil.which(executable)))} {executable}")
+        print(f"  {_tick(Path(vision['device']).exists())} camera {vision['device']}")
+    except ValueError as exc:
+        print(f"  ✗ {exc}")
 
     print(_bold("openai"))
     key = bool(os.environ.get(config.api_key_env))
@@ -280,6 +301,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", help="planner model for `say` (default: gpt-4.1)")
 
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("vision", help="native camera preview and on-demand inspection")
+    p.add_argument("action", choices=["start", "inspect", "status", "stop", "quit"])
+    p.add_argument("question", nargs="*")
+    p.add_argument("--region", nargs=4, type=int, metavar=("X", "Y", "W", "H"))
+    p.set_defaults(func=cmd_vision)
 
     p = sub.add_parser("task", help="submit and manage durable coding/experiment workers")
     commands = p.add_subparsers(dest="task_action", required=True)

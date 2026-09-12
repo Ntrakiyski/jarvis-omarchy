@@ -329,6 +329,16 @@ class VerifiedWebappTests(unittest.TestCase):
         with mock.patch('omarchy_voice.tools.subprocess.run', return_value=mock.Mock(stdout='brave-browser.desktop\n')):
             self.assertEqual(ex._webapp_command('https://x.com/'), ['omarchy', 'launch', 'webapp', 'https://x.com/'])
 
+    def test_research_window_has_an_address_bar(self):
+        ex = Executor(Config())
+        with mock.patch('omarchy_voice.tools.subprocess.run', return_value=mock.Mock(stdout='google-chrome.desktop\n')), \
+             mock.patch('omarchy_voice.tools.shutil.which', return_value='/usr/bin/google-chrome-stable'):
+            command = ex._webapp_command('https://example.com/', research=True)
+            self.assertEqual(command[-3:], ['google-chrome-stable', '--new-window', 'https://example.com/'])
+        with mock.patch('omarchy_voice.tools.subprocess.run', return_value=mock.Mock(stdout='firefox.desktop\n')):
+            self.assertEqual(ex._webapp_command('https://example.com/', research=True),
+                             ['omarchy', 'launch', 'browser', '--new-window', 'https://example.com/'])
+
     def test_unrelated_new_window_is_not_reported_as_requested_app(self):
         ex = Executor(Config())
         with mock.patch.object(ex, '_query_json', return_value=[{**WINDOW, 'title': 'Other', 'class': 'terminal'}]), \

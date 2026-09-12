@@ -46,4 +46,6 @@ jobs:
       - name: Build distribution
         run: python -m build
       - name: Check CLI entry point
-        run: omarchy-voice --help
+        run: |
+          omarchy-voice --help
+          omarchy-vision --help

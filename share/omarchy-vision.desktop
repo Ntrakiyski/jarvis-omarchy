@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OMA Vision
+Comment=Live camera preview for OMA; analysis only when requested
+Exec=omarchy-vision start
+Icon=camera-video
+Terminal=false
+Categories=AudioVideo;Video;
+Keywords=OMA;camera;vision;

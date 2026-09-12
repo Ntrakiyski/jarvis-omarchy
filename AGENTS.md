@@ -48,9 +48,10 @@ Maintain this as a small, reliable public open-source project. Read
 - Inspect the current branch, working tree, and remote heads first. Preserve
   unrelated and concurrent edits. Use a separate clean worktree when a checkout
   contains unfinished work; never reset, clean, or stash it indiscriminately.
-- Vision is currently excluded from publication. Keep its code, integration,
-  docs, tests, and mixed-file changes local until the maintainer explicitly
-  authorizes publishing it. A request to clean or push voice does not include it.
+- The camera companion is part of the public application. Review its runtime,
+  integration, documentation, and regression tests with the same publication
+  checks as voice. Camera samples, transcripts, benchmark runs, and local audit
+  evidence remain private and must never be published or packaged.
 - Enable repository hooks with `git config core.hooksPath .githooks`. Stage
   explicit paths, review `git diff --cached`, and run:
 
@@ -79,4 +80,4 @@ Maintain this as a small, reliable public open-source project. Read
   allow private artifacts into source archives, wheels, logs, or CI output.
 - Flag bypassed publication checks, weakened execution boundaries, and removed
   regression coverage without an equivalent check or removed feature.
-- Flag publication of excluded vision work or unrelated local changes.
+- Flag publication of camera samples, evaluation artifacts, or unrelated local changes.

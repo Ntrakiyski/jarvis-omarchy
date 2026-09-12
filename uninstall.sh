@@ -10,15 +10,17 @@ source "$SOURCE/share/install-paths.sh"
 validate_install_prefix "$PREFIX" "$SOURCE"
 
 systemctl --user disable --now omarchy-voice.service 2>/dev/null || true
+"$PREFIX/bin/omarchy-vision" quit 2>/dev/null || true
 rm -f "$HOME/.config/systemd/user/omarchy-voice.service"
 systemctl --user daemon-reload 2>/dev/null || true
 rm -rf "$PREFIX" "$HOME/.config/omarchy/plugins/voice.indicator"
 rm -f "$BINDIR/omarchy-voice"
+rm -f "$BINDIR/omarchy-vision" "$HOME/.local/share/applications/omarchy-vision.desktop"
 
 # The `omarchy voice ...` routes, if they were installed next to the omarchy
 # binary. Only these exact names, never a glob that could take omarchy's own.
 OMARCHY_BIN=$(dirname "$(command -v omarchy 2>/dev/null || echo /usr/bin/omarchy)")
-for route in "" -start -stop -toggle -confirm -cancel -say -doctor -log -manifest; do
+for route in "" -start -stop -toggle -confirm -cancel -say -doctor -log -manifest -vision; do
   target="$OMARCHY_BIN/omarchy-voice$route"
   [[ -f $target ]] && sudo rm -f "$target"
 done

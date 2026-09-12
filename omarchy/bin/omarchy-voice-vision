@@ -1,0 +1,9 @@
+#!/bin/bash
+# omarchy:summary=Open or inspect the physical camera with OMA Vision
+# omarchy:group=voice
+# omarchy:args=<start|inspect|status|stop|quit> [question...]
+# omarchy:examples=omarchy voice vision inspect "What is this?"
+set -euo pipefail
+SRC="${OMARCHY_VOICE_SRC:-$HOME/.local/share/omarchy-voice/src}"
+[[ -d $SRC ]] && export PYTHONPATH="$SRC${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m omarchy_voice.vision "$@"

@@ -170,6 +170,12 @@ moves the user somewhere else to do it. One window, one question, one answer.
 
 # Composing a workspace for a task
 
+Preserve the user's working layout. Reuse relevant open windows before launching
+duplicates. A factual lookup needs one research view; keep a live camera beside
+the work being discussed. Inspect current clients before arranging, adjust only
+the task's windows if they are cramped, and avoid repeated layout changes or
+closing unrelated windows. Build a new workspace only when the user requests it.
+
 This is for SETTLING IN — "set me up to watch the match", "help me plan the
 trip", "I want to work on the budget". The user is going to sit with these
 windows, so work out what the task needs on screen and build it in a single

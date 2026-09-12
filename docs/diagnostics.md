@@ -8,6 +8,7 @@ of Git and review [the security policy](../SECURITY.md) before sharing any evide
 | `session.log` | Human-readable actions, failures, usage and timing |
 | `live-trace.jsonl` | Live transcripts, routing, tool receipts and playback timing |
 | `network-trace.jsonl` | Connection setup, Ping/Pong RTT, timeouts and local loop lag |
+| `vision-trace.jsonl` | Camera startup, request stages/timing, bounded FFmpeg/FFplay error tails and shutdown reasons |
 | `live-state.json` | Conversation history and operation recovery state |
 | `tasks/TASK_ID/worker-trace.jsonl` | Worker model-request timing and failures |
 | `tasks/TASK_ID/workspace/.oma-logs/` | Command stdout and stderr |
@@ -16,6 +17,24 @@ Trace logs rotate at 8 MiB with three backups. `session.log` is not automaticall
 rotated; manage its retention locally. Automatic credential redaction does not
 make transcripts or page contents suitable for public upload. Individual session
 reviews are deliberately kept out of the public documentation.
+
+The vision trace rotates at 1 MiB with two backups and does not record images,
+questions or model observations. `vision_inspect_finished` separates camera-ready,
+frame preparation, model and total timing; `vision_inspect_error` identifies the
+failed stage. `vision_stopped` distinguishes idle/session limits, a closed preview,
+feed failures and session lock. Error tails are bounded to 2 KiB per child process.
+Empty or malformed JPEG records are discarded within a one-second recovery
+budget (also capped at 10,000 records); framing errors still stop capture.
+`vision_frame_dropped` and `vision_frames_recovered` describe each burst without
+logging every empty record. No stale frame is submitted as a fresh observation.
+
+`browser_window` events in the live trace record creation, reuse and navigation.
+`browser_finished` includes `windows_created` and `navigations`, making accidental
+window accumulation measurable. Research opens a normal browser window with an
+address bar and navigates it in place. Later requests can reuse that window only
+if its last observed title, process, address, class and workspace are unchanged
+and it is on the current workspace. Explicitly targeted windows remain explicit;
+unrelated windows are not closed. Manual layout changes remain intact.
 
 ## Latency
 

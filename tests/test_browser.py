@@ -2,11 +2,12 @@ import asyncio
 import json
 import os
 import unittest
+import threading
 from unittest import mock
 
 from omarchy_voice.browser import BrowserSurface, BrowserWorker, MODEL, cost
 from omarchy_voice.config import Config
-from omarchy_voice.tools import Result
+from omarchy_voice.tools import Executor, Result
 
 
 class SurfaceTests(unittest.TestCase):
@@ -16,9 +17,11 @@ class SurfaceTests(unittest.TestCase):
         self.window = {'address': '0xab', 'at': [100, 200], 'size': [800, 600],
                        'class': 'google-chrome', 'focusHistoryID': 0}
         self.ex._window_geometry.return_value = (self.window, '')
-        self.ex.call.return_value = Result(True, 'ok')
+        self.ex.call.return_value = Result(True, 'opened (window address:0xab)')
+        self.ex._lock = threading.Lock()
         self.ex._press_button.return_value = Result(True, 'ok')
         self.ex._shell.return_value = Result(True, 'ok')
+        self.ex._research_window = None
         self.surface = BrowserSurface(self.ex, lambda: True, mock.Mock())
         self.surface.target = 'address:0xab'
         self.surface.geometry = (100, 200, 800, 600)
@@ -97,12 +100,84 @@ class SurfaceTests(unittest.TestCase):
         self.ex.call.assert_not_called()
 
     def test_url_helper_invalidates_old_coordinates(self):
-        with mock.patch.object(self.surface, 'prepare') as prepare:
-            self.surface.helper('open_browser_url', {'url': 'https://example.com/'})
-        prepare.assert_called_once_with(url='https://example.com/')
+        self.surface.helper('open_browser_url', {'url': 'https://example.com/'})
+        self.ex._open_web_window.assert_not_called()
+        self.assertEqual(self.ex.call.call_args_list, [
+            mock.call('send_shortcut', {'mods': 'CTRL', 'key': 'l', 'window': 'address:0xab'}),
+            mock.call('type_text', {'text': 'https://example.com/'}),
+            mock.call('send_shortcut', {'mods': '', 'key': 'Return', 'window': 'address:0xab'})])
         self.assertIsNone(self.surface.geometry)
         with self.assertRaisesRegex(ValueError, 'Observe the browser'):
             self.surface.perform({'type': 'click', 'x': 1, 'y': 2})
+
+    def test_navigation_stops_if_focus_changes_before_typing(self):
+        def changed(*args):
+            self.window['focusHistoryID'] = 1
+            return Result(True, 'ok')
+        self.ex.call.side_effect = changed
+        with self.assertRaisesRegex(RuntimeError, 'lost focus'):
+            self.surface.helper('open_browser_url', {'url': 'https://example.com/'})
+        self.assertEqual(self.ex.call.call_count, 1)
+
+    def test_research_opens_once_then_reuses_for_many_sources(self):
+        self.ex._open_web_window.return_value = (self.window, '')
+        self.surface.prepare(url='https://example.com/')
+        for n in range(3):
+            self.surface.helper('open_browser_url', {'url': f'https://example.com/{n}'})
+        launches = [call for call in self.ex.call.call_args_list if call.args[0] == 'open_page']
+        self.assertEqual(launches, [mock.call('open_page', {'url': 'https://example.com/', 'read': False, 'research': True})])
+        self.assertEqual(self.surface.windows_created, 1)
+        self.assertEqual(self.surface.navigations, 3)
+
+    def test_next_task_reuses_only_unchanged_owned_window_on_current_workspace(self):
+        self.window.update(pid=123, title='Last source', workspace={'id': 3, 'name': '3'})
+        self.ex._query_json.return_value = [{'focused': True, 'activeWorkspace': {'id': 3}}]
+        self.ex._research_window = self.surface._identity(self.window)
+        self.surface.prepare(url='https://example.com/next')
+        self.ex._open_web_window.assert_not_called()
+        self.assertTrue(self.surface.owned)
+        self.assertIsNone(self.ex._research_window)  # Wait for new observation.
+
+    def test_repurposed_or_other_workspace_window_is_not_reclaimed(self):
+        for change in ('title', 'pid', 'workspace'):
+            with self.subTest(change=change):
+                self.window.update(pid=123, title='Last source', workspace={'id': 3})
+                self.ex._research_window = self.surface._identity(self.window)
+                if change == 'workspace':
+                    self.ex._query_json.return_value = [{'focused': True, 'activeWorkspace': {'id': 4}}]
+                else:
+                    self.ex._query_json.return_value = [{'focused': True, 'activeWorkspace': {'id': 3}}]
+                    self.window[change] = 'changed'
+                self.ex._open_web_window.return_value = (self.window, '')
+                self.ex.call.reset_mock()
+                self.surface.prepare(url='https://example.com/next')
+                self.assertEqual(sum(c.args[0] == 'open_page' for c in self.ex.call.call_args_list), 1)
+
+    def test_research_launch_and_navigation_respect_denials_and_confirmation(self):
+        for gate in ('deny_patterns', 'confirm_patterns'):
+            for action in ('launch', 'navigate'):
+                with self.subTest(gate=gate, action=action):
+                    ex = Executor(Config(**{gate: [r'open https://example\.com/held']}))
+                    surface = BrowserSurface(ex, lambda: True, mock.Mock())
+                    surface.target = 'address:0xab'
+                    with mock.patch.object(ex, '_screen_unavailable', return_value=None), \
+                         mock.patch.object(ex, '_window_geometry', return_value=(self.window, '')), \
+                         mock.patch.object(ex, '_open_web_window') as launch, \
+                         mock.patch.object(ex, '_tool_send_shortcut') as keys:
+                        with self.assertRaisesRegex(RuntimeError, 'confirmation|refused'):
+                            if action == 'launch': surface._open_research('https://example.com/held')
+                            else: surface._navigate('https://example.com/held')
+                        launch.assert_not_called()
+                        keys.assert_not_called()
+                        self.assertEqual(bool(ex.pending), gate == 'confirm_patterns')
+
+    def test_app_window_gets_one_navigable_research_window(self):
+        self.window['class'] = 'chrome-example.com__-Default'
+        with mock.patch.object(self.surface, '_open_research', return_value='address:0xac') as launch, \
+             mock.patch.object(self.surface, 'prepare') as prepare:
+            self.surface.helper('open_browser_url', {'url': 'https://example.com/'})
+        launch.assert_called_once()
+        prepare.assert_called_once_with(target='address:0xac')
 
 
 class WorkerTests(unittest.IsolatedAsyncioTestCase):

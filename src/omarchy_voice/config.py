@@ -117,7 +117,7 @@ RETIRED_KEYS = {
 
 # Sections whose keys are namespaced rather than flattened, because the plain
 # names are already taken by another section.
-PREFIXED_SECTIONS = {"realtime", "live", "tasks", "network"}
+PREFIXED_SECTIONS = {"realtime", "live", "tasks", "network", "vision"}
 
 # List-valued policy keys union with the built-in lists unless the matching
 # `*_replace` flag is set. Unknown keys are kept so doctor can report typos.
@@ -144,6 +144,29 @@ class Config:
     network_enabled: bool = True
     network_interval_seconds: float = 20.0
     network_timeout_seconds: float = 5.0
+
+    # On-demand camera companion. Enabled exposes tools; capture starts OFF.
+    vision_enabled: bool = True
+    vision_model: str = "gpt-6-astra"
+    vision_protocol: str = "responses"  # responses | chat_completions
+    vision_base_url: str = "https://api.openai.com/v1"
+    vision_api_key_env: str = ""  # OpenAI uses api_key_env; custom endpoints get no implicit key
+    vision_reasoning_effort: str = "low"  # empty omits this option for local models
+    vision_detail: str = "original"  # empty omits it for compatible local servers
+    vision_max_output_tokens: int = 768
+    vision_timeout_seconds: float = 30.0
+    vision_device: str = "/dev/video0"  # stable /dev/v4l/by-id path also supported
+    vision_input_format: str = "mjpeg"
+    vision_width: int = 1920
+    vision_height: int = 1080
+    vision_fps: int = 30
+    vision_preview_fps: int = 15
+    vision_image_width: int = 1920
+    vision_crop_percent: float = 30.0  # remove 15% per edge; keep the central 70%
+    vision_sharpen: float = 0.4  # gentle luminance sharpening; 0 disables
+    vision_idle_seconds: float = 90.0
+    vision_max_session_seconds: float = 600.0
+    vision_max_requests: int = 20
 
     # --- live --------------------------------------------------------------
     live_model: str = "gpt-live-1"

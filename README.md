@@ -13,12 +13,15 @@ local tools carry out desktop actions through a policy gate.
 - Discovers commands, shortcuts, and applications from your installed system.
 - Supports Realtime voice and an optional Live backend with delegated tasks.
 - Runs durable coding and analysis tasks with saved artifacts and verification.
+- Inspects physical objects through an on-demand camera preview with configurable
+  cloud or local vision models, cropping, and gentle sharpening.
 
 Example requests:
 
 - “Move this window to workspace three.”
 - “Open a terminal beside the browser.”
 - “Read the current page.”
+- “Look at this connector.”
 - “Tell me when the build finishes.”
 
 OMA starts muted. While listening is enabled, microphone audio goes to OpenAI.
@@ -32,7 +35,8 @@ You need an Omarchy desktop, Python 3.11 or later, PipeWire with a working
 microphone/output device, and an OpenAI API key with access to the configured
 models. The installer can install Arch's `python-websockets` package. Individual
 tools may also need `tmux`, `wtype`, `ydotool`, `grim`, or `tesseract`; `doctor`
-reports available desktop capabilities.
+reports available desktop capabilities. Camera vision also needs FFmpeg
+(`ffmpeg` and `ffplay`) and a supported V4L2 camera; see [OMA Vision](docs/vision.md).
 
 ```sh
 git clone https://github.com/wombatoperator/omarchy-voice.git
@@ -73,6 +77,8 @@ Clicking it while a confirmation is pending confirms the held action.
 | `omarchy-voice listen cancel` | Cancel pending confirmation and queued work |
 | `omarchy-voice say "open a terminal"` | Send a typed request to the one-shot planner |
 | `omarchy-voice --dry-run say "open a terminal"` | Preview changing actions; still permits read-only queries and API use |
+| `omarchy-vision start` | Open the local camera preview without an API call |
+| `omarchy-vision stop` | Close the camera preview and release capture |
 | `omarchy-voice status --json` | Inspect daemon state |
 | `omarchy-voice map` | Explore local capabilities without an API request |
 | `omarchy-voice log -f` | Follow private diagnostic logs |
@@ -107,6 +113,7 @@ interruptions; an [example configuration](share/echo-cancel.conf) is included.
 | --- | --- |
 | [Live backend](docs/live.md) | Setup, usage controls, browser delegation, recovery |
 | [Task workers](docs/task-workers.md) | Submit, inspect, cancel, and resume durable work |
+| [OMA Vision](docs/vision.md) | Camera setup, model switching, crop, privacy, and latency |
 | [Diagnostics](docs/diagnostics.md) | Troubleshooting, latency, and private logs |
 | [System discovery](docs/omarchy-architecture.md) | How OMA reads the installed desktop's capabilities |
 | [Security](SECURITY.md) | Data sharing, execution boundaries, private disclosure |

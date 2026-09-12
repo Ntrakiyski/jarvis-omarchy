@@ -50,9 +50,11 @@ def to_chat_tools(schemas: list[dict] | None = None) -> list[dict]:
 
 def _system_prompt(config=None) -> str:
     from .tasks import ROUTING
+    from .vision import ROUTING as VISION_ROUTING
     return "\n\n".join([
         PERSONA,
         ROUTING if config is not None and config.tasks_enabled else "",
+        VISION_ROUTING if config is not None and config.vision_enabled else "",
         capabilities.manifest(),
         "# The desktop right now\n\n" + capabilities.live_state(),
     ])

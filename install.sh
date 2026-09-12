@@ -55,7 +55,11 @@ rm -rf "$PREFIX/src" "$PREFIX/bin" "$PREFIX/share" "$PREFIX/omarchy" "$PREFIX/.v
 cp -r "$SOURCE/src" "$SOURCE/bin" "$SOURCE/share" "$SOURCE/omarchy" "$PREFIX/"
 touch "$PREFIX/.omarchy-voice-install"
 chmod +x "$PREFIX/bin/omarchy-voice"
+chmod +x "$PREFIX/bin/omarchy-vision"
 ln -sf "$PREFIX/bin/omarchy-voice" "$BINDIR/omarchy-voice"
+ln -sf "$PREFIX/bin/omarchy-vision" "$BINDIR/omarchy-vision"
+mkdir -p "$HOME/.local/share/applications"
+cp "$SOURCE/share/omarchy-vision.desktop" "$HOME/.local/share/applications/"
 echo "   omarchy-voice -> $BINDIR/omarchy-voice"
 
 if [[ ! -f "$CONFIGDIR/config.toml" ]]; then
@@ -109,6 +113,9 @@ warn "while listening is on, room audio streams continuously to OpenAI."
 warn "Toggling off stops the recorder, so nothing is captured while muted."
 
 # --- desktop integration ---------------------------------------------------
+if ! command -v ffmpeg >/dev/null || ! command -v ffplay >/dev/null; then
+  warn "OMA Vision needs FFmpeg (ffmpeg and ffplay); install it to enable camera preview."
+fi
 echo
 step "desktop integration"
 if [[ -d "$HOME/.config/omarchy" ]] && ask "install the bar widget plugin?"; then

@@ -26,6 +26,7 @@ Documentation = "https://github.com/wombatoperator/omarchy-voice#readme"
 
 [project.scripts]
 omarchy-voice = "omarchy_voice.cli:main"
+omarchy-vision = "omarchy_voice.vision:main"
 
 [project.optional-dependencies]
 dev = ["build>=1.2"]

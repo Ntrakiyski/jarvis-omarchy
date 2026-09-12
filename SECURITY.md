@@ -18,6 +18,11 @@ latest source revision.
 - Voice audio is sent to OpenAI while listening is enabled. Tool results, selected
   page text, screenshots, and task inputs can also leave the machine. Muting stops
   recording; it does not cancel previously submitted background tasks.
+- Camera preview stays local. Explicit camera inspections send one selected frame,
+  the question, and bounded previous visual context to the configured vision
+  endpoint. No frames are saved by the companion; descriptions can appear in
+  normal voice logs. Muting stops a camera owned by that voice session. Local
+  cancellation cannot retract a request already received by a model provider.
 - Desktop tools run with your user privileges. The regex deny/confirmation policy
   reduces mistakes; it is **not** a sandbox or a complete authorization system.
   Terminal commands, application launchers, typing, and browser actions can alter

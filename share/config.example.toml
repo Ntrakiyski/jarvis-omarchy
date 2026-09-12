@@ -13,6 +13,30 @@ max_turns = 12
 # Voice daemon backend. Realtime remains the default during Live evaluation.
 engine = "realtime"       # realtime | live; or `omarchy-voice run --engine live`
 
+[vision]
+# Camera stays OFF until requested; start shows preview, inspect sends one frame.
+enabled = true
+model = "gpt-6-astra"
+protocol = "responses"             # responses | chat_completions
+base_url = "https://api.openai.com/v1"
+api_key_env = ""                    # OpenAI inherits openai.api_key_env; custom endpoints do not
+reasoning_effort = "low"            # set "" to omit for local models
+detail = "original"                # set "" if the local server doesn't support detail
+max_output_tokens = 768            # includes reasoning tokens on OpenAI
+timeout_seconds = 30
+device = "/dev/video0"             # prefer a stable /dev/v4l/by-id/... path when available
+input_format = "mjpeg"             # native MJPEG avoids camera re-encoding
+width = 1920
+height = 1080
+fps = 30
+preview_fps = 15                   # preview decodes fewer frames; capture keeps the latest
+image_width = 1920                 # lower to reduce uploads; preserves aspect ratio
+crop_percent = 30.0                # centered: 15% off each edge, keep central 70% (~1.43x zoom)
+sharpen = 0.4                      # gentle sharpening; 0 disables (range 0–1.5)
+idle_seconds = 90
+max_session_seconds = 600
+max_requests = 20                  # no automatic background analysis or retries
+
 [live]
 model = "gpt-live-1"
 voice = "marin"
