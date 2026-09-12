@@ -4,7 +4,7 @@ Voice control for the Omarchy desktop. Ask OMA to move windows, open application
 read a page, or manage a background task. OpenAI handles speech and planning;
 local tools carry out desktop actions through a policy gate.
 
-**Experimental · Omarchy 4.x / Hyprland 0.56+ · Python 3.11+ · MIT**
+**Experimental · Omarchy with Lua-based Hyprland · Python 3.11+ · MIT**
 
 ## What it does
 
@@ -26,7 +26,8 @@ Example requests:
 
 OMA starts muted. While listening is enabled, microphone audio goes to OpenAI.
 Page text, screenshots, and tool results may also be sent when a task uses them.
-API usage is billed to your account. Read the [security policy](SECURITY.md) before
+Camera inspections send a selected frame to the configured vision endpoint.
+Cloud API usage is billed to your account. Read the [security policy](SECURITY.md) before
 using an agent with your desktop and signed-in applications.
 
 ## Install
@@ -74,7 +75,7 @@ Clicking it while a confirmation is pending confirms the held action.
 | --- | --- |
 | `omarchy-voice listen toggle` | Start or stop listening in the running daemon |
 | `omarchy-voice listen confirm` | Confirm a held action locally |
-| `omarchy-voice listen cancel` | Cancel pending confirmation and queued work |
+| `omarchy-voice listen cancel` | Cancel a held confirmation; Live also cancels unstarted tool calls |
 | `omarchy-voice say "open a terminal"` | Send a typed request to the one-shot planner |
 | `omarchy-voice --dry-run say "open a terminal"` | Preview changing actions; still permits read-only queries and API use |
 | `omarchy-vision start` | Open the local camera preview without an API call |
@@ -89,8 +90,13 @@ independent background workers. Manage those with `omarchy-voice task`.
 ## Configuration
 
 Edit `~/.config/omarchy-voice/config.toml`. The commented
-[configuration example](share/config.example.toml) lists defaults and available
+[configuration example](share/config.example.toml) lists defaults and optional
 settings. Restart the idle daemon after changes.
+
+The Python application honors `XDG_CONFIG_HOME`, `XDG_STATE_HOME`,
+`XDG_CACHE_HOME`, and `XDG_RUNTIME_DIR`. The installer, uninstaller, and supplied
+service use the standard home-directory paths shown here. Custom XDG layouts or
+an alternate install `PREFIX` need corresponding service/configuration changes.
 
 Realtime is the default voice engine. To select Live:
 
@@ -128,7 +134,10 @@ in [SECURITY.md](SECURITY.md).
 
 From your clone, run `./uninstall.sh`. It removes the installed application and
 integration, preserving configuration, logs, and task artifacts. Cancel active
-background workers first. `./uninstall.sh --purge` also deletes those saved files.
+background workers first. `./uninstall.sh --purge` also deletes
+`~/.config/omarchy-voice` and `~/.local/state/omarchy-voice`. Custom XDG paths and
+task roots outside those directories remain. The default cache is removed in
+both modes.
 
 ## Development
 
@@ -139,7 +148,8 @@ python -m pip install -e '.[dev]'
 python -m unittest discover -s tests
 ```
 
-The Python package provides the CLI; the installer handles desktop integration.
+The Python package provides `omarchy-voice` and `omarchy-vision`; the installer
+handles desktop integration.
 Unit tests use synthetic inputs and mocked providers, plus local test sockets.
 Paid API and real-desktop checks are separate, opt-in commands described in
 [CONTRIBUTING.md](CONTRIBUTING.md).

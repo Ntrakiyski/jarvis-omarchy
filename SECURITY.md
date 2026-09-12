@@ -23,6 +23,8 @@ latest source revision.
   endpoint. No frames are saved by the companion; descriptions can appear in
   normal voice logs. Muting stops a camera owned by that voice session. Local
   cancellation cannot retract a request already received by a model provider.
+  Automatic lock detection requires `omarchy-shell`; see [OMA Vision](docs/vision.md)
+  for the full camera lifecycle and provider settings.
 - Desktop tools run with your user privileges. The regex deny/confirmation policy
   reduces mistakes; it is **not** a sandbox or a complete authorization system.
   Terminal commands, application launchers, typing, and browser actions can alter

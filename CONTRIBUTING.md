@@ -22,8 +22,8 @@ Use the GitHub noreply email shown in your account's email settings for this
 repository's `git config user.email`. Commit and push hooks check staged content,
 commit identities, and complete pushed ancestry. Do not bypass a privacy failure.
 
-The editable Python install provides `omarchy-voice`; it does not install desktop
-bindings, widgets, or a user service. Use `./install.sh` when you want that
+The editable Python install provides `omarchy-voice` and `omarchy-vision`; it does
+not install desktop bindings, widgets, or a user service. Use `./install.sh` for that
 integration. Unit tests do not require an API key or a running Omarchy desktop.
 
 ## Validate a change
@@ -40,6 +40,11 @@ CI runs the full unit suite on Python 3.11 and 3.14, builds the distribution, an
 checks publication history. Local test sockets must be permitted; a sandbox that
 blocks them can prevent network and control-socket tests from running. Do not
 weaken production security to make a test pass.
+
+For documentation-only changes, check relative links and command syntax, compare
+TOML examples with `src/omarchy_voice/config.py`, and run `git diff --check` plus
+the staged publication scan. Do not execute example actions or paid probes just
+to check their syntax. Keep behavior tests for changes to executable code.
 
 Keep tests that verify behavior, failure handling, and execution boundaries.
 When removing a feature or development-only tool, remove its orphaned tests too.
@@ -62,7 +67,7 @@ under ignored `benchmarks/` or `docs/private/` and inspect it before sharing.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/omarchy_voice/` | Voice engines, desktop tools, policy, and durable workers |
+| `src/omarchy_voice/` | Voice engines, desktop tools, camera companion, policy, and durable workers |
 | `tests/` | Automated behavior and security regressions |
 | `tools/` | Publication checks, opt-in integration checks, trace analysis |
 | `share/`, `omarchy/`, `plugin/` | Desktop configuration, command wrappers, and widgets |

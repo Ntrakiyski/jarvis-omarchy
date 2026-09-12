@@ -1,6 +1,6 @@
 [Unit]
 Description=omarchy-voice — voice control for Omarchy
-Documentation=https://omarchy.org
+Documentation=https://github.com/wombatoperator/omarchy-voice#readme
 PartOf=graphical-session.target
 After=graphical-session.target
 # A missing python-websockets or API key is not a transient fault: without

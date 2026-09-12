@@ -1,6 +1,8 @@
 # OMA's Omarchy system map
 
-OMA discovers the installed machine on demand through `omarchy_help`. The same
+OMA discovers the installed machine on demand through `omarchy_help`, implemented
+in [`discovery.py`](../src/omarchy_voice/discovery.py) and
+[`capabilities.py`](../src/omarchy_voice/capabilities.py). The same
 map is available locally through `bin/omarchy-voice map`, without opening an
 OpenAI session or making an API request. The common desktop actions stay in the
 voice prompt; the full inventories are retrieved only when needed.
@@ -13,11 +15,13 @@ voice prompt; the full inventories are retrieved only when needed.
 | Hyprland | Monitors, workspaces, windows, input, bindings | `hypr_query` for current state; `hypr_dispatch` for operations; `dispatchers` and `shortcuts` map topics |
 | Omarchy CLI | Public interface to desktop features and system utilities | `commands` searches every public group; `command_details` supplies exact arguments, examples when provided, and the installed source path |
 | Omarchy shell | One Quickshell process hosting bar, menus, panels, overlays and services | `plugins` reports discovered manifests and enabled/active state from the shell registry when available |
-| User configuration | Overrides loaded after packaged defaults | `configuration` gives paths, ownership and reload behavior; file contents are not sent to the model |
+| User configuration | Overrides loaded after packaged defaults | `configuration` gives paths, ownership and reload behavior; this topic does not read file contents |
 | Applications | Desktop entries and additional launch actions | `applications` finds desktop IDs and actions such as new windows, respecting user overrides and XDG search paths |
 | Automation | Event hooks, startup commands, shell plugins | `hooks` inventories event directories and scripts; `configuration` locates startup and plugin files |
 | OMA | Voice/typed requests translated into local tool calls | Realtime or Live backend -> shared executor -> existing execution policy -> desktop interfaces |
 
+This map targets Omarchy's Lua-based Hyprland and Quickshell layout. Older or
+custom installations can have different paths and unavailable discovery topics.
 Hyprland starts the Omarchy shell as part of the graphical session. The shell's
 plugins share services; the bar, notifications and settings panels are not
 separate independently configured desktop environments.

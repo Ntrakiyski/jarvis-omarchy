@@ -6,9 +6,8 @@
 -- no recorder is running at all.
 --
 -- Deliberately avoids SUPER + V and SUPER + CTRL + V: Omarchy binds those to
--- Universal paste and the clipboard manager. SUPER + SHIFT + V is free.
--- Voxtype owns F9 (dictation — speech becomes text); this is the other half,
--- speech becomes actions.
+-- Universal paste and the clipboard manager. Check your current bindings before
+-- using SUPER + SHIFT + V; local customizations may already use it.
 
 if o.cmd_present("omarchy-voice") then
   o.bind("SUPER + SHIFT + V", "Toggle voice control", "omarchy-voice listen toggle")

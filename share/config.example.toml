@@ -1,12 +1,13 @@
 # ~/.config/omarchy-voice/config.toml
-# Every key here is optional — these are the defaults.
+# Every key is optional. Active values below match Config defaults.
+# Commented device, root, command, and policy entries illustrate overrides.
 
 [openai]
 # Used by `omarchy-voice say` (typed, no microphone). The daemon itself talks
-# to the Realtime API; this is the Chat Completions model for one-shot plans.
+# to the selected voice API; this is the Chat Completions model for one-shot plans.
 planner_model = "gpt-4.1"
 api_key_env = "OPENAI_API_KEY"
-# How many tool rounds one spoken instruction may take before the assistant
+# How many tool rounds one typed or spoken instruction may take before the assistant
 # stops and waits to be asked again. Multi-step goals need the room; every
 # round is also a turn against the API's per-minute token budget.
 max_turns = 12
@@ -54,11 +55,13 @@ browser_max_output_tokens = 1024
 # Small jitter buffer, adaptive up to 240 ms after playback starvation.
 playback_buffer_ms = 120
 max_output_tokens = 2048
-# Live costs $0.05 per connected minute PLUS backend tokens (2026-09-10).
+# Connected Live time and backend tokens are billed separately; see current pricing:
+# https://developers.openai.com/api/docs/pricing
 # No session at boot; toggle off closes it. Limit pauses until you toggle on.
 max_session_seconds = 1800
 # A typed `listen say` can open a session without opening the microphone.
-# Close after this much inactivity once its backend work and playback finish.
+# Close after this much inactivity when no backend work or queued input remains.
+# Received non-silent output audio resets it; it does not measure playback drain.
 typed_idle_seconds = 15
 
 [tasks]
@@ -99,6 +102,7 @@ model = "gpt-realtime-2.1"
 voice = "marin"           # cannot be changed once a session has spoken
 turn_detection = "semantic_vad"   # semantic_vad | server_vad | none
 sample_rate = 24000
+transcribe_model = "gpt-4o-mini-transcribe"  # user-audio transcripts; "" disables
 # `none` commits the audio buffer when you toggle listening off, then asks
 # for a response. Toggling off stops the recorder, so nothing is captured.
 
@@ -118,8 +122,12 @@ cancel_words = ["cancel", "never mind", "nevermind"]
 
 [mouth]
 notify = true
-speak  = false            # needs piper or espeak-ng
-# tts_command = "piper-say"
+speak  = false            # optional local speech for Realtime error notices
+# This does not disable the voice engine's normal spoken replies.
+# Built-in fallback tries piper + aplay, then espeak-ng.
+# For a configured Piper voice or another engine, provide a wrapper that accepts
+# `--` followed by the text as its final argument:
+# tts_command = "your-tts-wrapper"
 
 # Diagnostics on the existing voice socket (Live and Realtime).
 # Writes session.log and network-trace.jsonl; Live also includes its own trace.

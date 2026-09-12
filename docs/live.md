@@ -26,10 +26,13 @@ See `[live]` in the [configuration example](../share/config.example.toml) for
 model, voice, reasoning, playback, and task limits. `omarchy-voice doctor` reports
 the configured backend and available devices.
 
-The daemon starts muted and opens no paid voice session at boot. Toggle listening
+The Live daemon starts muted and opens no paid voice session at boot. Realtime
+also starts muted, but opens its connection at startup and keeps it while muted;
+Live's session/idle limits do not apply to Realtime. Toggle listening
 with the keybinding, bar widget, or `omarchy-voice listen start`.
 `omarchy-voice listen say "which workspace am I on?"` sends a typed request to the
-running engine without opening the microphone. The separate `omarchy-voice say`
+running engine without enabling a muted microphone; it does not mute an already
+active microphone. The separate `omarchy-voice say`
 command uses the one-shot planner.
 
 ## Usage and session limits
@@ -42,7 +45,7 @@ The application does not enforce an account-wide spending cap.
 | Setting | Effect |
 | --- | --- |
 | `live.max_session_seconds` | Stops a session at its time limit; listening must be enabled again |
-| `live.typed_idle_seconds` | Closes an idle typed session after work and playback finish |
+| `live.typed_idle_seconds` | Closes an inactive typed session when backend work and queued input are clear; received non-silent audio resets the timer |
 | `openai.max_turns` | Bounds tool rounds for a request |
 | `live.max_output_tokens` | Limits each backend response |
 | `live.service_tier` | Selects standard or priority backend processing |
@@ -53,10 +56,17 @@ Already-started desktop actions and independent background tasks can continue.
 Logs record final voice usage and separate backend token usage; a lost connection
 can leave final billing unconfirmed.
 
+The typed idle timer measures protocol activity, not the local playback queue.
+Very short idle limits can interrupt buffered speech. `listen cancel` drops a held
+confirmation in either engine; Live also invalidates unstarted calls from the
+current request and tells the voice model to stop that request. It does not cancel
+durable task workers.
+
 ## Desktop and browser behavior
 
-Independent read-only calls and actions on distinct, explicitly addressed windows
-can run concurrently. Focus, typing, scrolling, and layout changes remain ordered.
+Selected independent read-only calls, distinct native application launches, and
+exactly addressed window closes can run concurrently. Focus, typing, scrolling,
+and other layout changes remain ordered.
 Duplicate targets are serialized. A failed dependency prevents dependent actions
 from proceeding; already-started independent calls retain their results.
 
@@ -67,9 +77,16 @@ best handled with `omarchy-voice listen confirm` or `listen cancel`.
 
 Browser reading tries selectable text before OCR, checks focus and visibility,
 and preserves supported clipboard data. A focused input can yield only that
-field's text. Complex browser requests may use a separate computer-use model,
-sending screenshots and incurring additional API usage. Disable that route with
+field's text. Complex browser requests may use a separate computer-use worker
+with `gpt-6-astra`, sending screenshots and incurring additional API usage. Its
+model is currently set in `browser.py`, independently of the configurable camera
+model. Disable that route with
 `live.browser_enabled = false` if you do not need it.
+
+URL-based research navigates one normal browser window in place and can reuse
+that window across requests when its identity and workspace still match. It
+stops if focus or geometry changes during computer use. See
+[browser diagnostics](diagnostics.md#browser-and-worker-recovery) for reuse limits.
 
 ## Audio and recovery
 

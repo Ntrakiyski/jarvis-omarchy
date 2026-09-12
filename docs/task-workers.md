@@ -30,8 +30,9 @@ Examples of requests:
 - “Resume the blocked task after inspecting its existing output.”
 
 The voice tools are `task_submit`, `task_list`, `task_status`, `task_read`,
-`task_cancel`, and `task_resume`. A submission returns immediately with a stable
-task ID and a new private workspace. Task status reports job IDs, exact exit
+`task_cancel`, and `task_resume`. A submission returns after launching the worker,
+without waiting for its result. It supplies a stable task ID and a new private
+workspace. Task status reports job IDs, exact exit
 codes, log paths, progress, artifacts and the result of final checks. Reading
 an artifact is bounded and supports byte offsets.
 
@@ -39,10 +40,10 @@ A request key identifies one logical submission. Retrying the same key and
 specification returns the original task; reusing it with a different specification
 is rejected. A genuinely new experiment uses a new key. Mute, workspace changes
 and unrelated desktop instructions do not cancel workers. Explicit task cancellation
-stops the worker's process group; the legacy `listen cancel` still controls pending
+stops the worker's systemd control group; `listen cancel` still controls pending
 desktop work, so name the experiment when cancelling it by voice.
 
-The CLI accepts JSON rather than shell-escaped prompts:
+Save the submission as `request.json` for the CLI:
 
 ```json
 {
@@ -133,8 +134,9 @@ the host. [Official non-interactive Codex documentation](https://learn.chatgpt.c
 Both providers return the same result structure: outcome, summary, artifact paths,
 and a runnable argument vector for each zero-based acceptance criterion. The
 supervisor re-runs those checks in the direct worker's sandbox and records their
-exit status. `completed` requires all criteria represented, all checks passing,
-and existing artifacts whose hashes remain unchanged through verification.
+exit status. Incomplete outcomes may supply fewer checks. `completed` requires
+exactly one check per criterion, all checks passing, and existing artifacts whose
+hashes remain unchanged through verification.
 Failed checks produce `failed`, even if the agent claims success. Missing evidence
 or an unsupported environment produces a useful incomplete outcome.
 
@@ -144,17 +146,20 @@ check can still miss leakage, an unsuitable dataset or a wrong metric. Save raw
 measurements and use domain-specific validators where correctness matters.
 
 The Responses adapter rejects an incomplete response or malformed call batch
-before executing any call from that response. It permits one bounded attempt to
-produce a smaller complete call and records incomplete details. Completed calls
-have persisted IDs and argument fingerprints. Uncertain operations are not
-automatically replayed. For an incomplete Live handoff, the voice layer invalidates the exchange while
-retaining the connection and durable tasks; other protocol errors may pause it.
+before executing any call from that response. It permits one retry after invalid
+or missing calls, stops after two consecutive invalid responses, and records
+incomplete details. A valid batch resets that counter; every response still counts
+toward the attempt's model-call limit. Completed calls have persisted IDs and
+argument fingerprints. Uncertain operations are not automatically replayed. For an
+incomplete Live handoff, the voice layer invalidates the exchange while retaining
+the connection and durable tasks; other protocol errors may pause it.
 
 **Configuration and costs**
 
-See `[tasks]` in `share/config.example.toml`. Defaults: enabled, Responses/Astra,
-one active worker, 30 minutes per attempt, 24 model calls, 8,192 output tokens per
-call, ten minutes per command and 8 MiB of combined command logs. Codex has the
+See `[tasks]` in the [configuration example](../share/config.example.toml).
+Defaults: enabled, Responses/Astra, one active worker, 30 minutes per attempt,
+24 model calls, 8,192 output tokens per call, ten minutes per command and 8 MiB of
+combined stdout/stderr per command. Codex has the
 wall-time/log limits but its native loop does not expose this adapter's model-call
 limit. Each explicit resume creates a new bounded attempt.
 
@@ -178,7 +183,8 @@ races, restart reconciliation, resume, bounded file reads, path traversal,
 uncertain-call receipts, incomplete responses, late results after cancellation,
 and required verification. Real sandbox tests exercise numerical analysis, text
 processing and a simulation with standard-library Python, plus failed assertions,
-nonzero exits and timeouts.
+nonzero exits and timeouts. Those sandbox tests are skipped when bubblewrap is
+absent; when installed, its namespace setup must be permitted.
 
 `check_tasks.py` launches real temporary systemd workers with a **fake coding CLI**
 and real sandboxed verification. It checks client reconstruction while work runs,
@@ -197,8 +203,9 @@ the idle voice service. Preserve the task database and workspaces.
 
 ### Diagnostic phases and recovered results
 
-Task status now includes the current `phase` (`model`, `command`, or a terminal
-status), `current_job_id`, and bounded command descriptions with job timestamps.
+Task status includes the current `phase` (`starting`, `model`, `command`, or a
+terminal status), `current_job_id`, and bounded command descriptions with job
+timestamps.
 A running worker does not necessarily mean training is underway. Model request
 start/completion/error timings are in the task directory's `worker-trace.jsonl`.
 A timeout preserves completed jobs and files; inspect those before resuming.

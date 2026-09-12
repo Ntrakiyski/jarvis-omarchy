@@ -2,9 +2,10 @@
 
 A small MIT-licensed, Omarchy-first camera companion. Python's standard library
 handles local IPC and model requests; FFmpeg reads V4L2 and FFplay displays a native
-window. It has no Electron/browser runtime, Python package dependency, bundled
-model weights, or required GPU. The cloud model itself is proprietary; the app can
-also use open-weight models served locally through compatible APIs.
+window. The companion itself uses no third-party Python packages, Electron/browser
+runtime, bundled model weights, or required GPU. Installing the full OMA package
+also installs `websockets` for voice. The cloud model itself is proprietary; the
+app can also use open-weight models served locally through compatible APIs.
 
 Say **“OMA, look at this”** or **“What is this connector?”**. The `camera_view`
 tool opens a visible preview, takes a fresh frame, asks the configured model, and
@@ -16,10 +17,12 @@ Close the preview, press **Q/Escape** inside it, say **“stop looking”**, or 
 OMA to stop camera capture. A manually opened preview is independent until a voice
 inspection takes ownership. The camera also stops on idle timeout, maximum session
 duration, device/preview failure, voice process exit, or a detected Omarchy lock.
-The companion checks the shell lock state every two seconds while active; failure
-to establish it stops capture. Completed observations are snapshots, not continuous
-awareness. A changed scene during inference is described with the original capture
-time, never passed off as a new frame.
+When `omarchy-shell` is installed, the companion checks its lock state before
+capture and every two seconds while active; a failed or invalid check stops
+capture. If that command is absent, there is no automatic lock detection.
+Completed observations are snapshots, not continuous awareness. A changed scene
+during inference is described with the original capture time, never passed off
+as a new frame.
 
 ## Commands
 
@@ -30,18 +33,28 @@ omarchy-vision status                      # local metadata only
 omarchy-vision stop
 omarchy-vision quit                        # also exit the companion
 omarchy-voice vision inspect "Read the connector markings"
+omarchy-vision inspect "Read the label" --region 250 250 500 500
 ```
 
 `omarchy voice vision ...` is available if the optional Omarchy command wrappers
 were installed. OMA Vision also appears in the app launcher. From a checkout use
 `python3 bin/omarchy-vision ...`. The companion starts automatically, and exits
 after 15 seconds without an active camera. `--config /path/to/config.toml` selects
-an alternative configuration. No separate enabled-at-login service is needed.
+an alternative configuration; place it before the action for `omarchy-vision`,
+or before `vision` for `omarchy-voice`:
+
+```sh
+omarchy-vision --config /path/to/config.toml start
+omarchy-voice --config /path/to/config.toml vision start
+```
+
+No separate enabled-at-login service is needed.
 
 Optional `--region X Y W H` crops the image using normalized coordinates from
 0 to 1000. For example, `--region 250 250 500 500` inspects the central quarter
-of the zoomed view. The preview keeps its configured framing. Cropping changes the field of view;
-it cannot recover unreadable detail. Image pixels are never synthesized.
+of the zoomed view. The preview keeps its configured framing. Cropping changes
+the field of view; it cannot recover unreadable detail. There is no generative enhancement or
+super-resolution.
 
 ## Configuration and model switching
 
@@ -57,8 +70,8 @@ The default `crop_percent = 30.0` trims 15% from each edge, retaining the centra
 see this framing. `sharpen = 0.4` adds gentle luminance sharpening without changing
 colors or inventing detail. Set either value to `0` to disable it. Cropping trades
 field of view for a larger subject on screen; it cannot recover missing detail.
-An explicit `region` crop uses coordinates within this zoomed view. Stop the
-camera and restart OMA after changing settings.
+An explicit `region` crop uses coordinates within this zoomed view. Reload
+changed settings as described below.
 
 To switch OpenAI models, change `model`. To switch API providers or use an
 open-weight local model, change `protocol`, `base_url`, `model` and any optional
@@ -125,8 +138,10 @@ clears the companion's last frame and observation. It does not delete voice logs
 
 Control uses an owner-only Unix socket under OMA's private runtime directory with
 same-user peer checks; there is no HTTP listener. The companion log contains
-startup errors, not images or provider response bodies. Camera and model settings
-are local configuration, never model-generated shell commands. Captured labels
+startup errors, not images or provider response bodies. The separate
+`vision-trace.jsonl` records timings, bounded child-process errors, and shutdown
+reasons; see [diagnostics](diagnostics.md) for paths and retention. Camera and
+model settings are local configuration, never model-generated shell commands. Captured labels
 are treated as evidence, not instructions to operate the computer.
 
 ## Development
