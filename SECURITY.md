@@ -64,6 +64,12 @@ belong under ignored `benchmarks/`.
 
 Run `python3 tools/check_public_files.py --staged` before committing. CI scans
 tracked files for common credential shapes and accidental local runtime artifacts.
+Use `python3 tools/check_public_files.py --history HEAD` to check ancestral files
+and commit messages/identities too; deleting a file does not remove its history.
+Use your GitHub-provided `@users.noreply.github.com` identity for commits.
+Install local commit and push checks with `git config core.hooksPath .githooks`.
+The push hook checks the full ancestry of every pushed ref, including old local
+branches. Keep private conversation reviews and retired handoff files out of Git.
 This is a lightweight guard, not a comprehensive secret scanner. GitHub secret
 scanning and push protection should remain enabled. Run the unit suite and inspect
 any security-sensitive change to execution, file access, logging, or permissions.

@@ -9,8 +9,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Check tracked content for secrets and private artifacts
-        run: python3 tools/check_public_files.py
+        run: python3 tools/check_public_files.py --history HEAD
+      - name: Test publication guard
+        run: python3 -m unittest discover -s tests -p test_public_files.py -v
       - name: Check Python and shell syntax
         run: |
           python3 -m compileall -q src tests tools

@@ -26,3 +26,11 @@ docs/private/
 *.p12
 *.pfx
 .envrc
+
+# Retired documents containing desktop/session evidence
+HANDOFF.md
+docs/*-review*.md
+docs/bridge-mockup.html
+docs/omarchy-voice.html
+*.sqlite
+*.db

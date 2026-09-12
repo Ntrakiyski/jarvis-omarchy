@@ -30,14 +30,20 @@ Fixed findings:
 - **Publication checks:** a pinned, read-only GitHub Actions workflow scans indexed
   source for common credential patterns/private artifacts and runs security tests.
 
-The initial credential-pattern scan found no exposed credentials in publishable
-working files or the 23 local commits examined. These patterns are incomplete;
-review findings and enable GitHub's secret scanning/push protection. If a secret
-is later found in history, revoke it first and coordinate history cleanup.
-Local development commits contain conversation reviews. The publication branch
-is based on the existing public main branch with the reviewed snapshot applied,
-so those unpublished development commits are not introduced into public history.
-The original local development history is preserved.
+A follow-up review found copied session excerpts in older public handoff and
+presentation documents, the README, and source/test commentary, plus personal
+email addresses in commit metadata. A clean current snapshot alone does not
+establish that the published history is private. The cleanup removes retired
+session documents, replaces quoted conversations with technical explanations,
+and uses GitHub noreply commit identities. Local commit/push checks cover staged
+content and complete ancestry; their regression tests cover deleted files,
+renamed files, staged secrets, and commit metadata.
+
+Credential-pattern checks and Gitleaks found no credential exposure in the
+examined history. This does not prove that every possible secret was absent.
+History cleanup cannot erase third-party clones, forks, or GitHub cached views;
+those require separate follow-up. Review cleanup status before claiming that
+previously published information has been removed everywhere.
 
 Read [SECURITY.md](../SECURITY.md) for the threat model, privacy boundaries, residual
 risks, and private disclosure process. In particular, desktop actions remain
