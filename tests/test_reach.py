@@ -500,7 +500,8 @@ class LockedSessionTests(unittest.TestCase):
             self.assertTrue(self.executor._session_is_locked())
         self.assertNotIn("-q", seen[0])
 
-    def test_a_locked_session_refuses_before_anything_is_captured(self):
+    @mock.patch("omarchy_voice.tools.shutil.which", return_value="/test/bin/tool")
+    def test_a_locked_session_refuses_before_anything_is_captured(self, _which):
         self.executor._session_is_locked = lambda: True
         with mock.patch("subprocess.run") as run:
             result = self.executor._ocr_region("0,0 100x100")

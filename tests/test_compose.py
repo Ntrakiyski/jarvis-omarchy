@@ -340,7 +340,8 @@ class ReadScreenTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("hypr_query", result.output)
 
-    def test_a_screenful_of_text_is_capped(self):
+    @mock.patch("omarchy_voice.tools.shutil.which", return_value="/test/bin/tool")
+    def test_a_screenful_of_text_is_capped(self, _which):
         # _screen_unavailable is stubbed because it asks the real hyprctl through
         # Popen, which subprocess.run does not cover: with the monitor in DPMS
         # off this test used to fail on the sleeping-display refusal instead of
@@ -482,7 +483,8 @@ class SleepingScreenTests(unittest.TestCase):
         locked.start()
         self.addCleanup(locked.stop)
 
-    def test_a_sleeping_display_is_reported_not_captured(self):
+    @mock.patch("omarchy_voice.tools.shutil.which", return_value="/test/bin/tool")
+    def test_a_sleeping_display_is_reported_not_captured(self, _which):
         with mock.patch.object(self.executor, "_query_json",
                                return_value=[{"name": "HDMI-A-1", "dpmsStatus": False}]), \
              mock.patch("subprocess.run") as run:
@@ -502,7 +504,8 @@ class SleepingScreenTests(unittest.TestCase):
                 {"dpmsStatus": False}, {"dpmsStatus": True}]):
             self.assertIsNone(self.executor._screen_unavailable())
 
-    def test_clicking_a_sleeping_screen_is_refused(self):
+    @mock.patch("omarchy_voice.tools.shutil.which", return_value="/test/bin/tool")
+    def test_clicking_a_sleeping_screen_is_refused(self, _which):
         with mock.patch.object(self.executor, "_query_json", side_effect=lambda k: {
                 "monitors": [{"focused": True, "x": 0, "y": 0, "width": 100,
                               "height": 100, "dpmsStatus": False}]}[k]), \
