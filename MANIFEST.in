@@ -1,4 +1,4 @@
-include README.md CONTRIBUTING.md SECURITY.md LICENSE
+include README.md CONTRIBUTING.md AGENTS.md SECURITY.md LICENSE
 include install.sh uninstall.sh
 recursive-include bin *
 recursive-include share *

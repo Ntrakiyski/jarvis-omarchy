@@ -4,6 +4,9 @@ Small, focused improvements are welcome. Describe the user-visible problem and
 check for an existing issue before starting a large feature. The project targets
 Omarchy on Linux; the supported Python baseline is 3.11.
 
+Automated contributors must also follow [AGENTS.md](AGENTS.md), which covers
+public-data hygiene, maintenance standards, and safe publishing.
+
 ## Set up
 
 ```sh
