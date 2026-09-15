@@ -263,9 +263,17 @@ def run_window(config: Config) -> int:
         def _jobs_page(self):
             page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8,
                             vexpand=True)
+            top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             heading = Gtk.Label(xalign=0)
             heading.set_markup("<b>Background jobs</b>")
-            page.append(heading)
+            heading.set_hexpand(True)
+            heading.set_halign(Gtk.Align.START)
+            top.append(heading)
+            self.only_marked = Gtk.CheckButton(label="only what Jarvis started")
+            self.only_marked.set_active(True)
+            self.only_marked.connect("toggled", self._toggle_filter)
+            top.append(self.only_marked)
+            page.append(top)
             self.jobs_note = Gtk.Label(label="reading Paperclip…", xalign=0)
             self.jobs_note.add_css_class("dim-label")
             page.append(self.jobs_note)
@@ -306,6 +314,10 @@ def run_window(config: Config) -> int:
             frame.append(meta)
             return frame
 
+        def _toggle_filter(self, button) -> None:
+            self.jobs.only_marked = button.get_active()
+            self._refresh_jobs()
+
         def _refresh_jobs(self) -> bool:
             board: Board = self.jobs.fetch()
             for key, heading, cards in board.columns:
@@ -318,7 +330,7 @@ def run_window(config: Config) -> int:
                     body.remove(child)
                     child = nxt
                 if not cards:
-                    empty = Gtk.Label(label="nothing here" if key == "working" else "—",
+                    empty = Gtk.Label(label="nothing now" if key == "working" else "—",
                                       xalign=0.5)
                     empty.add_css_class("tone-dim")
                     empty.set_margin_top(6)
@@ -332,7 +344,14 @@ def run_window(config: Config) -> int:
                 self.jobs_note.set_text(board.error)
             else:
                 stamp = time.strftime("%H:%M", time.localtime(board.fetched_at))
-                self.jobs_note.set_text(f"{board.total} background jobs · read {stamp}")
+                width = len(board.columns)
+                if self.jobs.only_marked and board.total == 0:
+                    self.jobs_note.set_text(
+                        f"No jobs started yet · {board.skipped} other jobs hidden "
+                        f"· read {stamp}")
+                else:
+                    word = "job" if board.total == 1 else "jobs"
+                    self.jobs_note.set_text(f"{board.total} background {word} · read {stamp}")
             return True
 
         def _meter(self, parent, name: str) -> Gtk.ProgressBar:

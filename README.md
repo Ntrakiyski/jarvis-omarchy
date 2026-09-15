@@ -176,6 +176,12 @@ view: status and loudness meters, the listen/pause control, and — below it —
 | **Done** | finished | `done` |
 | **Cancelled** | stopped on purpose | `cancelled` |
 
+**Only what Jarvis started.** Every job Jarvis creates is titled
+`[Jarvis] <topic> · <YYYY-MM-DD HH:MM>`, and the board filters on that marker by
+default (the checkbox turns the filter off). So the board answers one question —
+*what did he set running for me* — instead of showing every issue in the company.
+Jobs created elsewhere stay out of the way.
+
 Cards keep Paperclip's own word ("blocked", "in review", "queued"), so folding
 `in_review` under *Needs you* cannot hide what the work plane actually thinks. The
 read is loopback-only and carries no credentials: the local server answers company

@@ -29,6 +29,22 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Every job Jarvis starts carries this marker in its title, so the board can
+# show exactly those and nothing else: "[Jarvis] <topic> · 2026-09-15 14:52".
+MARKER = "[Jarvis]"
+
+
+def is_marked(title: str) -> bool:
+    return title.strip().lower().startswith(MARKER.lower())
+
+
+def job_title(topic: str, when=None) -> str:
+    """The name every job Jarvis creates must carry."""
+    import datetime
+    stamp = (when or datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")
+    return f"{MARKER} {topic.strip()} · {stamp}"
+
+
 HERMES_ENV = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes")) / ".env"
 DEFAULT_URL = "http://127.0.0.1:3100"
 CACHE_SECONDS = 5.0
@@ -85,6 +101,7 @@ class Board:
     columns: list[tuple[str, str, list[Card]]] = field(default_factory=list)
     error: str = ""
     fetched_at: float = 0.0
+    skipped: int = 0
 
     @property
     def total(self) -> int:
@@ -114,9 +131,11 @@ def _get(url: str, timeout: float = 8.0):
 class Jobs:
     """Reads the board, and remembers the last good one."""
 
-    def __init__(self, base_url: str = "", company_id: str = ""):
+    def __init__(self, base_url: str = "", company_id: str = "",
+                 only_marked: bool = True):
         self.base_url = (base_url or _env_value("PAPERCLIP_API_URL", DEFAULT_URL)).rstrip("/")
         self.company_id = company_id or _env_value("PAPERCLIP_COMPANY_ID", "")
+        self.only_marked = only_marked
         self._agents: dict[str, str] = {}
         self._cache: Board | None = None
         self._at = 0.0
@@ -162,9 +181,13 @@ class Jobs:
             return board
 
         cards = []
+        skipped = 0
         for issue in issues:
             status = str(issue.get("status", "todo"))
             title = " ".join(str(issue.get("title", "")).split())
+            if self.only_marked and not is_marked(title):
+                skipped += 1
+                continue
             cards.append(Card(
                 identifier=str(issue.get("identifier") or issue.get("id", ""))[:12],
                 title=title[:160],
@@ -180,7 +203,7 @@ class Jobs:
             in_column = [c for c in cards if c.status in statuses]
             in_column.sort(key=lambda c: c.updated, reverse=True)
             columns.append((key, heading, in_column))
-        self._cache = Board(columns=columns, fetched_at=time.time())
+        self._cache = Board(columns=columns, fetched_at=time.time(), skipped=skipped)
         self._at = time.monotonic()
         return self._cache
 

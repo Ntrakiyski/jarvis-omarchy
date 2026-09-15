@@ -25,6 +25,10 @@ Voice call turn. Answer for speech: at most two short sentences, plain words, no
 markdown, no lists, no paths. Say only what a tool result confirmed this turn. If
 nothing was done, say that. If an irreversible action is wanted, ask for a
 go-ahead in one line and wait for it.
+
+Any background job you start is titled exactly "[Jarvis] <topic> · <YYYY-MM-DD
+HH:MM>" — the window's board shows only those, and the name is how the listener
+tells your work from everything else in the work plane.
 """
 
 TIMEOUT_TEXT = "The backend did not answer in time, so nothing was done."
