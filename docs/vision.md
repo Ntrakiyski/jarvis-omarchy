@@ -27,25 +27,25 @@ as a new frame.
 ## Commands
 
 ```sh
-omarchy-vision start                       # local preview, no API call
-omarchy-vision inspect "What is this?"      # one image request
-omarchy-vision status                      # local metadata only
-omarchy-vision stop
-omarchy-vision quit                        # also exit the companion
-omarchy-voice vision inspect "Read the connector markings"
-omarchy-vision inspect "Read the label" --region 250 250 500 500
+jarvis-vision start                       # local preview, no API call
+jarvis-vision inspect "What is this?"      # one image request
+jarvis-vision status                      # local metadata only
+jarvis-vision stop
+jarvis-vision quit                        # also exit the companion
+jarvis-voice vision inspect "Read the connector markings"
+jarvis-vision inspect "Read the label" --region 250 250 500 500
 ```
 
 `omarchy voice vision ...` is available if the optional Omarchy command wrappers
 were installed. OMA Vision also appears in the app launcher. From a checkout use
-`python3 bin/omarchy-vision ...`. The companion starts automatically, and exits
+`python3 bin/jarvis-vision ...`. The companion starts automatically, and exits
 after 15 seconds without an active camera. `--config /path/to/config.toml` selects
-an alternative configuration; place it before the action for `omarchy-vision`,
-or before `vision` for `omarchy-voice`:
+an alternative configuration; place it before the action for `jarvis-vision`,
+or before `vision` for `jarvis-voice`:
 
 ```sh
-omarchy-vision --config /path/to/config.toml start
-omarchy-voice --config /path/to/config.toml vision start
+jarvis-vision --config /path/to/config.toml start
+jarvis-voice --config /path/to/config.toml vision start
 ```
 
 No separate enabled-at-login service is needed.
@@ -59,7 +59,7 @@ super-resolution.
 ## Configuration and model switching
 
 Settings live in the `[vision]` section of the existing
-`~/.config/omarchy-voice/config.toml`; all defaults are in
+`~/.config/jarvis-voice/config.toml`; all defaults are in
 `share/config.example.toml`. Astra is the initial model, with low reasoning and a
 768-token output limit. The observer asks for a concise answer, decisive evidence,
 uncertainty, and a helpful next view. If reasoning consumes the output budget the
@@ -97,7 +97,7 @@ provider needs authentication, set `api_key_env` to its dedicated variable in
 OMA's private `env` file. Remote endpoints require HTTPS; loopback HTTP is allowed.
 Redirects are refused. Provider URLs/credentials cannot be changed by the voice tool.
 
-After edits, run `omarchy-vision quit` and restart the voice service to reload its
+After edits, run `jarvis-vision quit` and restart the voice service to reload its
 configuration. Standalone CLI commands read configuration on every invocation;
 an inactive companion automatically restarts for changed settings. Changes to an
 active companion require stopping it first. `enabled = false` removes the camera
@@ -160,4 +160,4 @@ Use `v4l2-ctl --list-devices` and `v4l2-ctl --list-formats-ext` to find the prop
 device and capture profile. The default expects a V4L2 camera supporting
 1920×1080 MJPEG at 30 fps; adjust it for your device. A device-in-use error requires releasing another capture
 app, not killing unrelated processes. Install FFmpeg if either `ffmpeg` or `ffplay`
-is missing. `omarchy-voice doctor` reports the vision configuration and dependencies.
+is missing. `jarvis-voice doctor` reports the vision configuration and dependencies.

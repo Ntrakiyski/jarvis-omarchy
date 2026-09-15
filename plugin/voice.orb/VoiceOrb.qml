@@ -126,7 +126,7 @@ Item {
 
   FileView {
     id: stateFile
-    path: Quickshell.env("XDG_RUNTIME_DIR") + "/omarchy-voice/state.json"
+    path: Quickshell.env("XDG_RUNTIME_DIR") + "/jarvis-voice/state.json"
     watchChanges: true
     onFileChanged: reload()
     onLoaded: {
@@ -154,7 +154,7 @@ Item {
   // re-arming a watch that often. It runs only while the orb is up.
   FileView {
     id: levelFile
-    path: Quickshell.env("XDG_RUNTIME_DIR") + "/omarchy-voice/level"
+    path: Quickshell.env("XDG_RUNTIME_DIR") + "/jarvis-voice/level"
     onLoaded: {
       // "<you> <oma>". A file written by an older daemon has one field; the
       // second reads as NaN and settles to zero, which is exactly the old
@@ -201,7 +201,7 @@ Item {
     visible: root.awake
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    WlrLayershell.namespace: "omarchy-voice-orb"
+    WlrLayershell.namespace: "jarvis-voice-orb"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore

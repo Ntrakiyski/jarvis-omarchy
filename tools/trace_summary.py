@@ -46,7 +46,7 @@ def summarize(rows, session_id=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('trace', nargs='?', type=Path,
-                        default=Path.home() / '.local/state/omarchy-voice/live-trace.jsonl')
+                        default=Path.home() / '.local/state/jarvis-voice/live-trace.jsonl')
     parser.add_argument('--session')
     args = parser.parse_args()
     rows = [json.loads(line) for line in args.trace.read_text().splitlines() if line.strip()]

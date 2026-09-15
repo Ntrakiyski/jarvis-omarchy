@@ -4,14 +4,11 @@ A voice-driven operator for an Omarchy desktop: **GPT-Live 1 talks, Jarvis think
 Paperclip works.** The voice model handles the spoken conversation; a local agent
 (Hermes) owns the reasoning, the desktop tools, the safety gate, and durable work.
 
-Built on [`wombatoperator/omarchy-voice`](https://github.com/wombatoperator/omarchy-voice)
+Built on [`wombatoperator/jarvis-voice`](https://github.com/wombatoperator/jarvis-voice)
 (MIT) — same executor, policy gate and desktop toolset — with the voice/backend seam
 changed so the brain stays on your machine.
 
 **Experimental · Omarchy with Lua-based Hyprland · Python 3.11+ · MIT**
-
-> Paths below describe the `jarvis/live-client-delegation` branch. On `main` the
-> upstream `omarchy-voice` names still apply until that branch is merged.
 
 ## Why this fork exists
 
@@ -117,11 +114,12 @@ Kept from upstream, unchanged, because it is the right shape:
 | Desktop executor, policy gate, capability discovery, OCR, browser, camera | ✅ from upstream |
 | Live transport skeleton | ✅ from upstream |
 | Client-delegation mode (`{"type": "client"}`) | ✅ verified end-to-end — paid probe, `tools/check_client_delegation.py` |
-| Jarvis backend adapter (`hermes -z … --continue`) | 🚧 branch in progress |
-| Paperclip routing verbs (create/queue/steer/stop) | 🚧 branch in progress |
+| Jarvis backend adapter (`hermes -z … --continue jarvis-voice`) | ✅ implemented — offline tests in `tests/test_backend.py` |
+| Routing verbs (act · read · steer · queue · stop · create) | ✅ decided by the backend, executed with its own tools |
 | Task-board summary in the voice session | ⏳ next |
 | `bootstrap/` kit (skills, SOUL.md, AGENTS.md, SETUP.md, MCP list) | ⏳ next |
-| Live end-to-end run with a real key | ⏳ needs `gpt-live-1` account access |
+| Live session + client delegation | ✅ verified end-to-end (`tools/check_client_delegation.py`) |
+| Full microphone run on this machine | ⏳ after install + key |
 
 ## Install
 
@@ -150,6 +148,14 @@ The backend does **not** read that file: Hermes keeps its own credentials in
 ```sh
 jarvis-voice doctor
 systemctl --user start jarvis-voice     # if you installed the user service
+```
+
+From a clone, without installing anything system-wide:
+
+```sh
+python3 -m venv .venv && . .venv/bin/activate && pip install -e .
+jarvis-voice run --engine client                     # then `jarvis-voice listen toggle`
+jarvis-voice listen say "which workspace am I on?"   # typed, no microphone needed
 ```
 
 Press **Super + Shift + V** (or click the bar widget) to toggle listening. Listening
@@ -216,7 +222,8 @@ scanner are upstream's own (`tools/check_public_files.py --staged`, `--history <
 
 | Guide | Contents |
 | --- | --- |
-| [Live backend](docs/live.md) | Sessions, limits, audio, engine switching |
+| [Client delegation](docs/client-delegation.md) | This fork's voice path: session config, backend contract, routing, failure semantics |
+| [Live backend](docs/live.md) | Upstream's Live path: sessions, limits, audio, engine switching |
 | [Task workers](docs/task-workers.md) | Upstream's worker model (this fork routes to Paperclip) |
 | [Vision](docs/vision.md) | Camera setup, crop, privacy, latency |
 | [Diagnostics](docs/diagnostics.md) | Troubleshooting, latency, private logs |
@@ -236,7 +243,7 @@ real-desktop checks are explicit opt-ins.
 
 ## Credits
 
-Fork of [wombatoperator/omarchy-voice](https://github.com/wombatoperator/omarchy-voice)
+Fork of [wombatoperator/jarvis-voice](https://github.com/wombatoperator/jarvis-voice)
 (MIT) — the executor, policy gate, capability discovery and much of the hard-won
 behaviour in this tree are his work. This fork changes the voice/backend seam and
 ships the personal-agent kit. Licensed under the [MIT License](LICENSE).

@@ -3,8 +3,8 @@
   "id": "voice.indicator",
   "name": "Voice control",
   "version": "0.3.0",
-  "author": "omarchy-voice",
-  "description": "Shows whether omarchy-voice is listening, thinking, or acting. Click toggles; click while waiting confirms.",
+  "author": "jarvis-voice",
+  "description": "Shows whether jarvis-voice is listening, thinking, or acting. Click toggles; click while waiting confirms.",
   "kinds": [
     "bar-widget"
   ],
@@ -13,7 +13,7 @@
   },
   "barWidget": {
     "displayName": "Voice control",
-    "description": "Listening state for omarchy-voice",
+    "description": "Listening state for jarvis-voice",
     "category": "Audio",
     "allowMultiple": false
   }

@@ -47,5 +47,5 @@ jobs:
         run: python -m build
       - name: Check CLI entry point
         run: |
-          omarchy-voice --help
-          omarchy-vision --help
+          jarvis-voice --help
+          jarvis-vision --help

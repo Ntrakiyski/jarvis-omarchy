@@ -60,6 +60,9 @@ def cmd_say(args, config) -> int:
 
 
 def cmd_run(args, config) -> int:
+    if config.engine == "client":
+        from . import live_client
+        return live_client.run(config)
     if config.engine == "live":
         from . import live
         return live.run(config)
@@ -157,7 +160,7 @@ def cmd_map(args, config) -> int:
 
 
 def cmd_doctor(args, config) -> int:
-    print(_bold(f"omarchy-voice {__version__}\n"))
+    print(_bold(f"jarvis-voice {__version__}\n"))
 
     print(_bold("vision"))
     from .vision import settings
@@ -174,8 +177,12 @@ def cmd_doctor(args, config) -> int:
     key = bool(os.environ.get(config.api_key_env))
     print(f"  {_tick(key)} {config.api_key_env}"
           + ("" if key else f"  (put it in {cfg.ENV_FILE})"))
-    print(f"  → planner model {config.planner_model} (`omarchy-voice say`)")
-    if config.engine == "live":
+    print(f"  → planner model {config.planner_model} (`jarvis-voice say`)")
+    if config.engine == "client":
+        print(f"  → Live model {config.live_model}, voice {config.live_voice}, client delegation")
+        print(f"  → backend agent {config.backend_command} '{config.backend_session}' "
+              f"(timeout {config.backend_timeout_seconds:g}s)")
+    elif config.engine == "live":
         print(f"  → Live model {config.live_model}, voice {config.live_voice}")
         print(f"  → backend {config.live_backend_model}, max output {config.live_max_output_tokens}")
         print("  → Live voice: $0.05/minute plus backend usage; disconnects on mute")
@@ -203,6 +210,13 @@ def cmd_doctor(args, config) -> int:
     if config.engine == "live":
         from .live import config_problems
         problems.extend(config_problems(config))
+    elif config.engine == "client":
+        from .backend import Backend
+        problem = Backend(command=config.backend_command,
+                          session=config.backend_session,
+                          model=config.backend_model).available()
+        if problem:
+            problems.append(f"backend: {problem}")
     elif config.engine != "realtime":
         problems.append(f"unknown voice engine: {config.engine}")
     if problems:
@@ -210,7 +224,13 @@ def cmd_doctor(args, config) -> int:
             print(f"  {_tick(False)} {problem}")
     else:
         print(f"  {_tick(True)} websockets, API key, and PipeWire tools all present")
-    if config.engine == "live":
+    if config.engine == "client":
+        print(f"  → GPT-Live ({config.live_model}, voice {config.live_voice}) with CLIENT delegation")
+        print(f"  → thinking is local: {config.backend_command} session '{config.backend_session}'"
+              + (f", model {config.backend_model}" if config.backend_model else ""))
+        print(f"  → voice session billed at $0.05/minute; backend billed by your provider")
+        print(f"  → session limit {config.live_max_session_seconds:g}s; no connection at boot")
+    elif config.engine == "live":
         print("  → OpenAI Live with Responses delegation, toggle-only")
         print(f"  → session limit {config.live_max_session_seconds:g}s; no connection at boot")
     else:
@@ -290,10 +310,10 @@ def cmd_log(args, config) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="omarchy-voice",
+        prog="jarvis-voice",
         description="Drive Omarchy by voice with OpenAI Realtime or Live.",
     )
-    parser.add_argument("--version", action="version", version=f"omarchy-voice {__version__}")
+    parser.add_argument("--version", action="version", version=f"jarvis-voice {__version__}")
     parser.add_argument("-n", "--dry-run", action="store_true",
                         help="decide, but narrate actions instead of running them")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -331,7 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_say)
 
     p = sub.add_parser("run", help="start the listening daemon")
-    p.add_argument("--engine", choices=("realtime", "live"),
+    p.add_argument("--engine", choices=("client", "realtime", "live"),
                    help="override the configured voice backend")
     p.set_defaults(func=cmd_run)
 

@@ -59,12 +59,12 @@ Save the submission as `request.json` for the CLI:
 ```
 
 ```sh
-omarchy-voice task submit request.json
-omarchy-voice task list
-omarchy-voice task status TASK_ID
-omarchy-voice task read TASK_ID report.md
-omarchy-voice task cancel TASK_ID
-omarchy-voice task resume TASK_ID --guidance 'Inspect prior outputs before continuing.'
+jarvis-voice task submit request.json
+jarvis-voice task list
+jarvis-voice task status TASK_ID
+jarvis-voice task read TASK_ID report.md
+jarvis-voice task cancel TASK_ID
+jarvis-voice task resume TASK_ID --guidance 'Inspect prior outputs before continuing.'
 ```
 
 The initial implementation starts from a fresh workspace. It does not give the

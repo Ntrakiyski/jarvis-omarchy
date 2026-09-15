@@ -10,8 +10,8 @@ public-data hygiene, maintenance standards, and safe publishing.
 ## Set up
 
 ```sh
-git clone https://github.com/wombatoperator/omarchy-voice.git
-cd omarchy-voice
+git clone https://github.com/wombatoperator/jarvis-voice.git
+cd jarvis-voice
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e '.[dev]'
@@ -22,7 +22,7 @@ Use the GitHub noreply email shown in your account's email settings for this
 repository's `git config user.email`. Commit and push hooks check staged content,
 commit identities, and complete pushed ancestry. Do not bypass a privacy failure.
 
-The editable Python install provides `omarchy-voice` and `omarchy-vision`; it does
+The editable Python install provides `jarvis-voice` and `jarvis-vision`; it does
 not install desktop bindings, widgets, or a user service. Use `./install.sh` for that
 integration. Unit tests do not require an API key or a running Omarchy desktop.
 

@@ -206,7 +206,7 @@ you an action needs spoken confirmation:
 
 Never call `confirm_last` with words the user did not actually say. If you did
 not hear a clear answer, ask again. The user can also confirm from the bar
-widget or `omarchy-voice listen confirm`, which does not go through you at all.
+widget or `jarvis-voice listen confirm`, which does not go through you at all.
 """
 
 # Realtime-only tools. Not in tools.TOOL_SCHEMAS: confirmations for `say` are
@@ -816,7 +816,7 @@ class RealtimeSession:
         await self._send({"type": "response.create"})
 
     async def _inject(self, text: str) -> str:
-        """`omarchy-voice listen say ...` — a typed turn, mic untouched."""
+        """`jarvis-voice listen say ...` — a typed turn, mic untouched."""
         text = text.strip()
         if not text:
             return "nothing to say"
@@ -1366,8 +1366,8 @@ def _safety_identifier() -> str:
             SAFETY_ID_FILE.chmod(0o600)
         secret = SAFETY_ID_FILE.read_text().strip()
     except OSError:
-        secret = "omarchy-voice:anonymous"
-    return hashlib.sha256(f"omarchy-voice:{secret}".encode()).hexdigest()[:32]
+        secret = "jarvis-voice:anonymous"
+    return hashlib.sha256(f"jarvis-voice:{secret}".encode()).hexdigest()[:32]
 
 
 def _open_socket(url: str, headers: dict):
@@ -1469,7 +1469,7 @@ def check_ready(config: Config) -> list[str]:
 
 
 def run(config: Config) -> int:
-    """Entry point used by `omarchy-voice run`.
+    """Entry point used by `jarvis-voice run`.
 
     Not having an API key yet is a normal state, not a crash. Installing the
     add-on before pasting a key used to leave a service that failed, restarted,
@@ -1487,7 +1487,7 @@ def run(config: Config) -> int:
     if unconfigured:
         note = f"{config.api_key_env} is not set — put it in {ENV_FILE}"
         print(note)
-        print("then: systemctl --user restart omarchy-voice")
+        print("then: systemctl --user restart jarvis-voice")
         Feedback(config).state("unconfigured", note)
         return 0
     if hard:
@@ -1512,14 +1512,14 @@ def _run_until_done(session: RealtimeSession) -> int:
     executor, and `asyncio.run` waits for that executor to drain before it
     returns. A tool still blocked on a subprocess therefore kept the process
     alive after the session had ended and its control socket was gone: `ps`
-    showed a healthy daemon, `omarchy-voice status` said no daemon is running,
+    showed a healthy daemon, `jarvis-voice status` said no daemon is running,
     and systemd — seeing a process that had not exited — never restarted it.
 
     Owning the executor lets us abandon it instead of waiting on it. The threads
     are daemon threads doing bounded subprocess work; the process is exiting
     either way.
     """
-    executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="omarchy-voice")
+    executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="jarvis-voice")
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)

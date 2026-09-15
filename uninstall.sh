@@ -3,31 +3,31 @@
 # unless you pass --purge.
 set -euo pipefail
 
-PREFIX="${PREFIX:-$HOME/.local/share/omarchy-voice}"
+PREFIX="${PREFIX:-$HOME/.local/share/jarvis-voice}"
 BINDIR="${BINDIR:-$HOME/.local/bin}"
 SOURCE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SOURCE/share/install-paths.sh"
 validate_install_prefix "$PREFIX" "$SOURCE"
 
-systemctl --user disable --now omarchy-voice.service 2>/dev/null || true
-"$PREFIX/bin/omarchy-vision" quit 2>/dev/null || true
-rm -f "$HOME/.config/systemd/user/omarchy-voice.service"
+systemctl --user disable --now jarvis-voice.service 2>/dev/null || true
+"$PREFIX/bin/jarvis-vision" quit 2>/dev/null || true
+rm -f "$HOME/.config/systemd/user/jarvis-voice.service"
 systemctl --user daemon-reload 2>/dev/null || true
 rm -rf "$PREFIX" "$HOME/.config/omarchy/plugins/voice.indicator"
-rm -f "$BINDIR/omarchy-voice"
-rm -f "$BINDIR/omarchy-vision" "$HOME/.local/share/applications/omarchy-vision.desktop"
+rm -f "$BINDIR/jarvis-voice"
+rm -f "$BINDIR/jarvis-vision" "$HOME/.local/share/applications/jarvis-vision.desktop"
 
 # The `omarchy voice ...` routes, if they were installed next to the omarchy
 # binary. Only these exact names, never a glob that could take omarchy's own.
 OMARCHY_BIN=$(dirname "$(command -v omarchy 2>/dev/null || echo /usr/bin/omarchy)")
 for route in "" -start -stop -toggle -confirm -cancel -say -doctor -log -manifest -vision; do
-  target="$OMARCHY_BIN/omarchy-voice$route"
+  target="$OMARCHY_BIN/jarvis-voice$route"
   [[ -f $target ]] && sudo rm -f "$target"
 done
-rm -rf "$HOME/.cache/omarchy-voice"
+rm -rf "$HOME/.cache/jarvis-voice"
 
 if [[ "${1:-}" == "--purge" ]]; then
-  rm -rf "$HOME/.config/omarchy-voice" "$HOME/.local/state/omarchy-voice"
+  rm -rf "$HOME/.config/jarvis-voice" "$HOME/.local/state/jarvis-voice"
   echo "removed config, logs, and task artifacts too"
 else
   echo "kept config, logs, and task artifacts; --purge removes them"
@@ -38,15 +38,15 @@ fi
 # comment to the `end` that closes the `if o.cmd_present` guard. Anything you
 # added yourself around it is left alone.
 BINDINGS="$HOME/.config/hypr/bindings.lua"
-if [[ -f "$BINDINGS" ]] && grep -q 'omarchy-voice' "$BINDINGS"; then
+if [[ -f "$BINDINGS" ]] && grep -q 'jarvis-voice' "$BINDINGS"; then
   cp "$BINDINGS" "$BINDINGS.bak-voice-uninstall"
   python3 - "$BINDINGS" <<'PYEOF'
 import re, sys
 path = sys.argv[1]
 text = open(path).read()
 block = re.compile(
-    r'\n*-- omarchy-voice -+\n(?:--[^\n]*\n)*'
-    r'if o\.cmd_present\("omarchy-voice"\) then\n(?:.*?\n)*?end\n',
+    r'\n*-- jarvis-voice -+\n(?:--[^\n]*\n)*'
+    r'if o\.cmd_present\("jarvis-voice"\) then\n(?:.*?\n)*?end\n',
     re.MULTILINE)
 new, n = block.subn('\n', text)
 if n:
@@ -80,4 +80,4 @@ if removed:
 PYEOF
 fi
 
-echo "omarchy-voice removed."
+echo "jarvis-voice removed."

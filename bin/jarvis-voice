@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""omarchy-voice launcher."""
+"""jarvis-voice launcher."""
 import sys
 from pathlib import Path
 

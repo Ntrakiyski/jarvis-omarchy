@@ -13,7 +13,7 @@ import tempfile
 import time
 from unittest import mock
 
-package_root = (Path.home() / ".local/share/omarchy-voice/src" if "--installed" in sys.argv
+package_root = (Path.home() / ".local/share/jarvis-voice/src" if "--installed" in sys.argv
                 else Path(__file__).resolve().parents[1] / "src")
 sys.path.insert(0, str(package_root))
 from omarchy_voice.config import Config

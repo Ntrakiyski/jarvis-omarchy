@@ -6,7 +6,7 @@ This project does not promise that arbitrary model-generated actions are safe.
 
 ## Reporting a vulnerability
 
-Use [GitHub private vulnerability reporting](https://github.com/wombatoperator/omarchy-voice/security/advisories/new)
+Use [GitHub private vulnerability reporting](https://github.com/wombatoperator/jarvis-voice/security/advisories/new)
 to report a suspected vulnerability. Do not include exploit details, credentials,
 transcripts, or private files in a public issue. Include the affected commit, a
 minimal synthetic reproduction, expected behavior, and impact in the private
@@ -54,7 +54,7 @@ latest source revision.
 
 ## Credentials and diagnostics
 
-Keep keys in `~/.config/omarchy-voice/env` with mode 600, outside the repository.
+Keep keys in `~/.config/jarvis-voice/env` with mode 600, outside the repository.
 Never commit environment files, private keys, copied browser profiles, model
 checkpoints containing private data, or runtime logs. Rotate any credential that
 has been exposed; deleting it in a later Git commit does not remove Git history.

@@ -26,7 +26,7 @@ BarWidget {
 
   FileView {
     id: state
-    path: Quickshell.env("XDG_RUNTIME_DIR") + "/omarchy-voice/state.json"
+    path: Quickshell.env("XDG_RUNTIME_DIR") + "/jarvis-voice/state.json"
     watchChanges: true
     onFileChanged: reload()
     onLoaded: {
@@ -60,9 +60,9 @@ BarWidget {
                  : "Voice control: " + root.status
     onPressed: function(b) {
       if (root.status === "confirm")
-        root.bar.run("omarchy-voice listen confirm")
+        root.bar.run("jarvis-voice listen confirm")
       else
-        root.bar.run("omarchy-voice listen toggle")
+        root.bar.run("jarvis-voice listen toggle")
     }
   }
 }

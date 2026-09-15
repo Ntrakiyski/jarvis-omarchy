@@ -1,6 +1,6 @@
 """Unix control socket shared by the daemon and the CLI.
 
-`omarchy-voice listen toggle` (and the SUPER + SHIFT + V binding) talk to a
+`jarvis-voice listen toggle` (and the SUPER + SHIFT + V binding) talk to a
 running realtime session through this socket. Confirm/cancel are local —
 they do not go through the model — so a held action can be released without
 trusting a transcript.
@@ -141,7 +141,7 @@ def daemon_running() -> bool:
 def send_control(command: str, timeout: float = 5.0) -> str:
     """Talk to a running daemon from the CLI."""
     if not daemon_running():
-        raise ConnectionError("no omarchy-voice daemon is running")
+        raise ConnectionError("no jarvis-voice daemon is running")
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client.settimeout(timeout)
     client.connect(str(SOCKET_PATH))

@@ -1,6 +1,6 @@
 [Unit]
-Description=omarchy-voice — voice control for Omarchy
-Documentation=https://github.com/wombatoperator/omarchy-voice#readme
+Description=jarvis-voice — voice control for Omarchy
+Documentation=https://github.com/wombatoperator/jarvis-voice#readme
 PartOf=graphical-session.target
 After=graphical-session.target
 # A missing python-websockets or API key is not a transient fault: without
@@ -10,11 +10,11 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart=%h/.local/share/omarchy-voice/bin/omarchy-voice run
+ExecStart=%h/.local/share/jarvis-voice/bin/jarvis-voice run
 # A key exported in your shell does not reach a systemd user unit. Put
-# OPENAI_API_KEY in ~/.config/omarchy-voice/env — one KEY=value per line,
+# OPENAI_API_KEY in ~/.config/jarvis-voice/env — one KEY=value per line,
 # chmod 600. The installer creates that file empty.
-EnvironmentFile=-%h/.config/omarchy-voice/env
+EnvironmentFile=-%h/.config/jarvis-voice/env
 # Unexpected disconnects (idle timeout, PipeWire death) return non-zero so
 # this restarts them. `listen quit` and SIGINT return 0 and stay down.
 Restart=on-failure

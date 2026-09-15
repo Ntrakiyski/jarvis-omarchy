@@ -17,7 +17,7 @@ RULES = {
     'copied conversation log': r'(?m)^\s*(?:\d{2}:\d{2}:\d{2}\s+)?(?:heard|reply|action)\s+[\x22\x27]',
     'personal email address': r'\b[A-Za-z0-9._%+-]+@(?:gmail|hotmail|outlook|yahoo|icloud|protonmail)\.com\b',
 }
-PRIVATE_NAMES = {'HANDOFF.md', 'bridge-mockup.html', 'omarchy-voice.html'}
+PRIVATE_NAMES = {'HANDOFF.md', 'bridge-mockup.html', 'jarvis-voice.html'}
 PRIVATE_SUFFIXES = {'.jsonl', '.sqlite', '.sqlite3', '.db', '.log', '.pem', '.key', '.p12', '.pfx'}
 
 

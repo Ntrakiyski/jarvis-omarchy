@@ -14,8 +14,8 @@ validate_install_prefix() {
       return 1 ;;
   esac
   if [[ -d $resolved ]] && [[ -n $(find "$resolved" -mindepth 1 -maxdepth 1 -print -quit) ]] \
-     && [[ ! -f "$resolved/.omarchy-voice-install" ]] \
-     && [[ ! -f "$resolved/src/omarchy_voice/__init__.py" || ! -f "$resolved/bin/omarchy-voice" ]]; then
+     && [[ ! -f "$resolved/.jarvis-voice-install" ]] \
+     && [[ ! -f "$resolved/src/omarchy_voice/__init__.py" || ! -f "$resolved/bin/jarvis-voice" ]]; then
     echo 'Refusing to overwrite/remove a nonempty directory that is not an OMA installation.' >&2
     return 1
   fi

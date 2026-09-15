@@ -3,14 +3,14 @@ requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "omarchy-voice"
+name = "jarvis-voice"
 dynamic = ["version"]
 description = "Voice control and durable desktop tasks for Omarchy Linux"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{name = "omarchy-voice contributors"}]
+authors = [{name = "jarvis-voice contributors"}]
 dependencies = ["websockets>=14,<17"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -20,13 +20,13 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/wombatoperator/omarchy-voice"
-Issues = "https://github.com/wombatoperator/omarchy-voice/issues"
-Documentation = "https://github.com/wombatoperator/omarchy-voice#readme"
+Repository = "https://github.com/wombatoperator/jarvis-voice"
+Issues = "https://github.com/wombatoperator/jarvis-voice/issues"
+Documentation = "https://github.com/wombatoperator/jarvis-voice#readme"
 
 [project.scripts]
-omarchy-voice = "omarchy_voice.cli:main"
-omarchy-vision = "omarchy_voice.vision:main"
+jarvis-voice = "omarchy_voice.cli:main"
+jarvis-vision = "omarchy_voice.vision:main"
 
 [project.optional-dependencies]
 dev = ["build>=1.2"]

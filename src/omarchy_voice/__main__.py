@@ -1,7 +1,7 @@
 """`python3 -m omarchy_voice` — the entry point the omarchy-* wrappers use.
 
-They cannot call the `omarchy-voice` binary by name: the wrapper for the
-`omarchy voice` route is itself named `omarchy-voice`, so a PATH lookup finds
+They cannot call the `jarvis-voice` binary by name: the wrapper for the
+`omarchy voice` route is itself named `jarvis-voice`, so a PATH lookup finds
 the wrapper and execs it again. Going through the module names the
 implementation unambiguously.
 """

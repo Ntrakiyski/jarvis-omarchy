@@ -1,9 +1,9 @@
-# ~/.config/omarchy-voice/config.toml
+# ~/.config/jarvis-voice/config.toml
 # Every key is optional. Active values below match Config defaults.
 # Commented device, root, command, and policy entries illustrate overrides.
 
 [openai]
-# Used by `omarchy-voice say` (typed, no microphone). The daemon itself talks
+# Used by `jarvis-voice say` (typed, no microphone). The daemon itself talks
 # to the selected voice API; this is the Chat Completions model for one-shot plans.
 planner_model = "gpt-4.1"
 api_key_env = "OPENAI_API_KEY"
@@ -12,7 +12,21 @@ api_key_env = "OPENAI_API_KEY"
 # round is also a turn against the API's per-minute token budget.
 max_turns = 12
 # Voice daemon backend. Realtime remains the default during Live evaluation.
-engine = "realtime"       # realtime | live; or `omarchy-voice run --engine live`
+engine = "client"         # client (this fork) | live | realtime;
+#   client = GPT-Live + local agent   live = GPT-Live + OpenAI backend
+#   realtime = one model for speech and tools
+# or `jarvis-voice run --engine client`
+
+[backend]
+# This fork: the agent that thinks while GPT-Live speaks. One turn per delegated
+# request, in a named session, so conversation state, skills, memory and the
+# work plane stay on this machine. The cloud sees the spoken audio and the result
+# it is asked to say — never the tools, the files or the task state.
+command = "hermes"        # must be on PATH
+session = "jarvis-voice"  # created on first use, continued after that
+model = ""                # "" = the command's own default model
+timeout_seconds = 120     # a silent backend is reported, never guessed at
+# extra_args = ["--skills", "voice", "paperclip-operations"]
 
 [vision]
 # Camera stays OFF until requested; start shows preview, inspect sends one frame.
@@ -41,7 +55,7 @@ max_requests = 20                  # no automatic background analysis or retries
 [live]
 model = "gpt-live-1"
 voice = "marin"
-backend_model = "gpt-5.6-terra"
+backend_model = "gpt-5.6-terra"   # used by `engine = "live"` only
 sample_rate = 24000       # 16000 or 24000; raw mono PCM16
 reasoning_effort = "low"
 service_tier = "default"  # priority requests faster processing at higher backend token prices

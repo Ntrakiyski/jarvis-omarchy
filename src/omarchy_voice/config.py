@@ -1,6 +1,6 @@
 """Configuration loading.
 
-Config lives at ~/.config/omarchy-voice/config.toml. Every key has a working
+Config lives at ~/.config/jarvis-voice/config.toml. Every key has a working
 default, so the file is optional.
 """
 
@@ -16,8 +16,8 @@ from pathlib import Path
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 CACHE_HOME = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
 STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
-ENV_FILE = CONFIG_HOME / "omarchy-voice" / "env"
-SAFETY_ID_FILE = CONFIG_HOME / "omarchy-voice" / "safety-id"
+ENV_FILE = CONFIG_HOME / "jarvis-voice" / "env"
+SAFETY_ID_FILE = CONFIG_HOME / "jarvis-voice" / "safety-id"
 
 
 def _runtime_dir() -> Path:
@@ -26,15 +26,15 @@ def _runtime_dir() -> Path:
     # remote for every local user.
     xdg = os.environ.get("XDG_RUNTIME_DIR")
     if xdg:
-        return Path(xdg) / "omarchy-voice"
-    return STATE_HOME / "omarchy-voice" / "run"
+        return Path(xdg) / "jarvis-voice"
+    return STATE_HOME / "jarvis-voice" / "run"
 
 
 RUNTIME_DIR = _runtime_dir()
 
 
 def load_env_file(path: Path = ENV_FILE) -> list[str]:
-    """Merge ~/.config/omarchy-voice/env into os.environ.
+    """Merge ~/.config/jarvis-voice/env into os.environ.
 
     The systemd unit reads this file through EnvironmentFile, so the daemon has
     the keys either way. Without this, the *CLI* does not. A real environment
@@ -59,10 +59,10 @@ def load_env_file(path: Path = ENV_FILE) -> list[str]:
     return warnings
 
 
-CONFIG_DIR = CONFIG_HOME / "omarchy-voice"
+CONFIG_DIR = CONFIG_HOME / "jarvis-voice"
 CONFIG_FILE = CONFIG_DIR / "config.toml"
-CACHE_DIR = CACHE_HOME / "omarchy-voice"
-STATE_DIR = STATE_HOME / "omarchy-voice"
+CACHE_DIR = CACHE_HOME / "jarvis-voice"
+STATE_DIR = STATE_HOME / "jarvis-voice"
 SOCKET_PATH = RUNTIME_DIR / "control.sock"
 STATE_FILE = RUNTIME_DIR / "state.json"
 # Its own file, deliberately. This changes ten times a second while listening;
@@ -117,7 +117,7 @@ RETIRED_KEYS = {
 
 # Sections whose keys are namespaced rather than flattened, because the plain
 # names are already taken by another section.
-PREFIXED_SECTIONS = {"realtime", "live", "tasks", "network", "vision"}
+PREFIXED_SECTIONS = {"realtime", "live", "tasks", "network", "vision", "backend"}
 
 # List-valued policy keys union with the built-in lists unless the matching
 # `*_replace` flag is set. Unknown keys are kept so doctor can report typos.
@@ -138,8 +138,10 @@ class Config:
     # had to say "carry on". Each round costs a turn against the per-minute
     # token budget, which is why this is 12 and not 30.
     max_turns: int = 12
-    # Keep Realtime available while the Live transport is evaluated.
-    engine: str = "realtime"
+    # This fork defaults to Live + client delegation: GPT-Live speaks, the
+    # local backend agent (Hermes) thinks. "live" = upstream Responses
+    # delegation, "realtime" = upstream speech-to-speech.
+    engine: str = "client"
 
     network_enabled: bool = True
     network_interval_seconds: float = 20.0
@@ -188,6 +190,16 @@ class Config:
     # A connected Live session is billed by time, including silence.
     live_max_session_seconds: float = 1800.0
     live_typed_idle_seconds: float = 15.0
+
+    # --- backend (this fork) -----------------------------------------------
+    # The agent that thinks while GPT-Live speaks. One turn per delegation, in
+    # a named session, so memory and skills stay on this machine.
+    backend_command: str = "hermes"       # must be on PATH
+    backend_session: str = "jarvis-voice"  # Hermes session name, created on demand
+    backend_model: str = ""                # "" = the command's own default model
+    backend_timeout_seconds: float = 120.0
+    backend_extra_args: list[str] = field(default_factory=list)
+    state_dir: Path = STATE_DIR            # traces, saved state
 
     # Durable, isolated work. These budgets are independent of voice sessions.
     tasks_enabled: bool = True

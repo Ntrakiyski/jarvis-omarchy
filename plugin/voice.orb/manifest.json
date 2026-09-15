@@ -3,7 +3,7 @@
   "id": "voice.orb",
   "name": "Voice orb",
   "version": "0.3.0",
-  "author": "omarchy-voice",
+  "author": "jarvis-voice",
   "description": "A themed orb at the bottom of the screen while voice control is listening.",
   "kinds": [
     "panel"

@@ -2,7 +2,7 @@
 Type=Application
 Name=OMA Vision
 Comment=Live camera preview for OMA; analysis only when requested
-Exec=omarchy-vision start
+Exec=jarvis-vision start
 Icon=camera-video
 Terminal=false
 Categories=AudioVideo;Video;

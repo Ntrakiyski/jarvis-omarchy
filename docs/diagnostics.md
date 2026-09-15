@@ -1,7 +1,7 @@
 # Diagnostics and reliability
 
-Persistent logs and history live under `~/.local/state/omarchy-voice/` by default
-(`$XDG_STATE_HOME/omarchy-voice` when set). Keep them out of Git and review
+Persistent logs and history live under `~/.local/state/jarvis-voice/` by default
+(`$XDG_STATE_HOME/jarvis-voice` when set). Keep them out of Git and review
 [the security policy](../SECURITY.md) before sharing any evidence.
 
 | File | Purpose |
@@ -17,7 +17,7 @@ Persistent logs and history live under `~/.local/state/omarchy-voice/` by defaul
 Task paths in this table assume the default root; `[tasks] root` can change it.
 Control sockets, the indicator's `state.json` and `level`, and the camera's
 `vision/control.sock` and `vision/companion.log` live under
-`$XDG_RUNTIME_DIR/omarchy-voice`. Without `XDG_RUNTIME_DIR`, the application uses
+`$XDG_RUNTIME_DIR/jarvis-voice`. Without `XDG_RUNTIME_DIR`, the application uses
 `run/` inside its persistent state directory. These paths are defined in
 [`config.py`](../src/omarchy_voice/config.py).
 

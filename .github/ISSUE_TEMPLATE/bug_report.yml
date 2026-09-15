@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem with omarchy-voice.
+description: Report a reproducible problem with jarvis-voice.
 body:
   - type: markdown
     attributes:

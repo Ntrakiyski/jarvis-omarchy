@@ -884,12 +884,16 @@ class LiveConfigTests(unittest.TestCase):
         self.assertEqual(loaded.live_backend_model, "test")
         self.assertEqual(loaded.unknown_keys, [])
 
-    def test_realtime_remains_available(self):
-        self.assertEqual(config.Config().engine, "realtime")
-        args = cli.build_parser().parse_args(["run", "--engine", "live"])
-        with mock.patch.object(live, "run", return_value=0) as run:
-            cli.cmd_run(args, config.Config(engine="live"))
-        run.assert_called_once()
+    def test_client_engine_is_the_default_and_every_engine_dispatches(self):
+        self.assertEqual(config.Config().engine, "client")
+        from omarchy_voice import live_client
+        from omarchy_voice import realtime as realtime_mod
+        for engine, module in (("realtime", realtime_mod), ("live", live),
+                               ("client", live_client)):
+            args = cli.build_parser().parse_args(["run", "--engine", engine])
+            with mock.patch.object(module, "run", return_value=0) as run:
+                cli.cmd_run(args, config.Config(engine=engine))
+            run.assert_called_once()
 
     def test_invalid_audio_and_unbounded_session_are_rejected(self):
         self.assertEqual(len(live.config_problems(config.Config(live_sample_rate=48000,

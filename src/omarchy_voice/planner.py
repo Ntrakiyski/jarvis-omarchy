@@ -1,4 +1,4 @@
-"""One-shot OpenAI planner for `omarchy-voice say`.
+"""One-shot OpenAI planner for `jarvis-voice say`.
 
 The daemon itself is speech-to-speech over the Realtime API. This module is
 the typed equivalent: the same tools, the same policy gate, no microphone.
@@ -88,7 +88,7 @@ class Planner:
         if not key:
             raise PlannerUnavailable(
                 f"{self.config.api_key_env} is not set — "
-                "put it in ~/.config/omarchy-voice/env")
+                "put it in ~/.config/jarvis-voice/env")
 
         messages: list[dict] = [
             {"role": "system", "content": _system_prompt(self.config)},

@@ -3,7 +3,7 @@
 OMA discovers the installed machine on demand through `omarchy_help`, implemented
 in [`discovery.py`](../src/omarchy_voice/discovery.py) and
 [`capabilities.py`](../src/omarchy_voice/capabilities.py). The same
-map is available locally through `bin/omarchy-voice map`, without opening an
+map is available locally through `bin/jarvis-voice map`, without opening an
 OpenAI session or making an API request. The common desktop actions stay in the
 voice prompt; the full inventories are retrieved only when needed.
 
@@ -35,21 +35,21 @@ night-light and portal configuration belong to separate processes.
 
 ## Explore it
 
-Run these from the repository (after installation, use `omarchy-voice`):
+Run these from the repository (after installation, use `jarvis-voice`):
 
 ```sh
-bin/omarchy-voice map
-bin/omarchy-voice map commands wifi
-bin/omarchy-voice map commands plugin
-bin/omarchy-voice map command_details 'omarchy plugin clone'
-bin/omarchy-voice map shortcuts scratchpad
-bin/omarchy-voice map shortcuts 'SUPER SHIFT V'
-bin/omarchy-voice map applications browser
-bin/omarchy-voice map dispatchers 'workspace move'
-bin/omarchy-voice map configuration 'night light'
-bin/omarchy-voice map plugins clock
-bin/omarchy-voice map hooks
-bin/omarchy-voice map commands --offset 12
+bin/jarvis-voice map
+bin/jarvis-voice map commands wifi
+bin/jarvis-voice map commands plugin
+bin/jarvis-voice map command_details 'omarchy plugin clone'
+bin/jarvis-voice map shortcuts scratchpad
+bin/jarvis-voice map shortcuts 'SUPER SHIFT V'
+bin/jarvis-voice map applications browser
+bin/jarvis-voice map dispatchers 'workspace move'
+bin/jarvis-voice map configuration 'night light'
+bin/jarvis-voice map plugins clock
+bin/jarvis-voice map hooks
+bin/jarvis-voice map commands --offset 12
 ```
 
 The assistant uses the same lookup, for example:

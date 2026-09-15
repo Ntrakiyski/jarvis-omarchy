@@ -1,4 +1,4 @@
--- omarchy-voice — add to ~/.config/hypr/bindings.lua
+-- jarvis-voice — add to ~/.config/hypr/bindings.lua
 --
 -- One key, one meaning: SUPER + SHIFT + V turns listening on, and turns it
 -- off again. There is no hold-to-talk and no always-on mode. While it is on,
@@ -9,8 +9,8 @@
 -- Universal paste and the clipboard manager. Check your current bindings before
 -- using SUPER + SHIFT + V; local customizations may already use it.
 
-if o.cmd_present("omarchy-voice") then
-  o.bind("SUPER + SHIFT + V", "Toggle voice control", "omarchy-voice listen toggle")
+if o.cmd_present("jarvis-voice") then
+  o.bind("SUPER + SHIFT + V", "Toggle voice control", "jarvis-voice listen toggle")
   -- While the bar shows "waiting for confirmation", click the widget or:
-  -- o.bind("SUPER + SHIFT + Y", "Confirm voice action", "omarchy-voice listen confirm")
+  -- o.bind("SUPER + SHIFT + Y", "Confirm voice action", "jarvis-voice listen confirm")
 end

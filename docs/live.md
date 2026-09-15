@@ -10,12 +10,12 @@ voice and backend models.
 Stop the existing daemon before running another one in the foreground:
 
 ```sh
-omarchy-voice listen quit
-omarchy-voice run --engine live
+jarvis-voice listen quit
+jarvis-voice run --engine live
 ```
 
 Use `--engine realtime` to switch back. To choose persistently, edit
-`~/.config/omarchy-voice/config.toml` and restart the idle user service:
+`~/.config/jarvis-voice/config.toml` and restart the idle user service:
 
 ```toml
 [openai]
@@ -23,16 +23,16 @@ engine = "live"
 ```
 
 See `[live]` in the [configuration example](../share/config.example.toml) for
-model, voice, reasoning, playback, and task limits. `omarchy-voice doctor` reports
+model, voice, reasoning, playback, and task limits. `jarvis-voice doctor` reports
 the configured backend and available devices.
 
 The Live daemon starts muted and opens no paid voice session at boot. Realtime
 also starts muted, but opens its connection at startup and keeps it while muted;
 Live's session/idle limits do not apply to Realtime. Toggle listening
-with the keybinding, bar widget, or `omarchy-voice listen start`.
-`omarchy-voice listen say "which workspace am I on?"` sends a typed request to the
+with the keybinding, bar widget, or `jarvis-voice listen start`.
+`jarvis-voice listen say "which workspace am I on?"` sends a typed request to the
 running engine without enabling a muted microphone; it does not mute an already
-active microphone. The separate `omarchy-voice say`
+active microphone. The separate `jarvis-voice say`
 command uses the one-shot planner.
 
 ## Usage and session limits
@@ -73,7 +73,7 @@ from proceeding; already-started independent calls retain their results.
 New speech pauses unstarted calls and forwards the correction after outstanding
 results drain. This does not undo completed actions. Transcript fragments are not
 an authoritative signal that speech has finished, so ambiguous confirmations are
-best handled with `omarchy-voice listen confirm` or `listen cancel`.
+best handled with `jarvis-voice listen confirm` or `listen cancel`.
 
 Browser reading tries selectable text before OCR, checks focus and visibility,
 and preserves supported clipboard data. A focused input can yield only that

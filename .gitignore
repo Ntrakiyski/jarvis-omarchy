@@ -31,7 +31,7 @@ docs/private/
 HANDOFF.md
 docs/*-review*.md
 docs/bridge-mockup.html
-docs/omarchy-voice.html
+docs/jarvis-voice.html
 *.sqlite
 *.db
 

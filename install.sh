@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# omarchy-voice installer. Safe to re-run; every step is idempotent.
+# jarvis-voice installer. Safe to re-run; every step is idempotent.
 set -euo pipefail
 
-PREFIX="${PREFIX:-$HOME/.local/share/omarchy-voice}"
+PREFIX="${PREFIX:-$HOME/.local/share/jarvis-voice}"
 BINDIR="${BINDIR:-$HOME/.local/bin}"
 PLUGINDIR="$HOME/.config/omarchy/plugins"
-CONFIGDIR="$HOME/.config/omarchy-voice"
+CONFIGDIR="$HOME/.config/jarvis-voice"
 UNITDIR="$HOME/.config/systemd/user"
 SOURCE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SOURCE/share/install-paths.sh"
@@ -34,7 +34,7 @@ pacman_install() {
   sudo pacman -S --needed --noconfirm "$pkg"
 }
 
-bold "omarchy-voice installer"
+bold "jarvis-voice installer"
 echo "OpenAI Live or Realtime voice control for Omarchy."
 echo
 
@@ -53,14 +53,14 @@ step "installing to $PREFIX"
 mkdir -p "$PREFIX" "$BINDIR" "$CONFIGDIR"
 rm -rf "$PREFIX/src" "$PREFIX/bin" "$PREFIX/share" "$PREFIX/omarchy" "$PREFIX/.venv"
 cp -r "$SOURCE/src" "$SOURCE/bin" "$SOURCE/share" "$SOURCE/omarchy" "$PREFIX/"
-touch "$PREFIX/.omarchy-voice-install"
-chmod +x "$PREFIX/bin/omarchy-voice"
-chmod +x "$PREFIX/bin/omarchy-vision"
-ln -sf "$PREFIX/bin/omarchy-voice" "$BINDIR/omarchy-voice"
-ln -sf "$PREFIX/bin/omarchy-vision" "$BINDIR/omarchy-vision"
+touch "$PREFIX/.jarvis-voice-install"
+chmod +x "$PREFIX/bin/jarvis-voice"
+chmod +x "$PREFIX/bin/jarvis-vision"
+ln -sf "$PREFIX/bin/jarvis-voice" "$BINDIR/jarvis-voice"
+ln -sf "$PREFIX/bin/jarvis-vision" "$BINDIR/jarvis-vision"
 mkdir -p "$HOME/.local/share/applications"
-cp "$SOURCE/share/omarchy-vision.desktop" "$HOME/.local/share/applications/"
-echo "   omarchy-voice -> $BINDIR/omarchy-voice"
+cp "$SOURCE/share/jarvis-vision.desktop" "$HOME/.local/share/applications/"
+echo "   jarvis-voice -> $BINDIR/jarvis-voice"
 
 if [[ ! -f "$CONFIGDIR/config.toml" ]]; then
   cp "$SOURCE/share/config.example.toml" "$CONFIGDIR/config.toml"
@@ -74,7 +74,7 @@ ENVFILE="$CONFIGDIR/env"
 if [[ ! -f "$ENVFILE" ]]; then
   umask 077
   cat > "$ENVFILE" <<'EOF'
-# Keys for the systemd user service and for `omarchy-voice` run from a
+# Keys for the systemd user service and for `jarvis-voice` run from a
 # terminal. chmod 600. A key exported in your shell does not reach systemd.
 # OPENAI_API_KEY=sk-...
 EOF
@@ -133,22 +133,22 @@ fi
 # The `omarchy voice ...` routes. Optional and off by default: they need a
 # directory that `omarchy` itself scans, which is the one holding the omarchy
 # binary — /usr/bin, and therefore root. Without this you still have the
-# `omarchy-voice` command; you just do not get the omarchy-native spelling.
+# `jarvis-voice` command; you just do not get the omarchy-native spelling.
 OMARCHY_BIN=$(dirname "$(command -v omarchy 2>/dev/null || echo /usr/bin/omarchy)")
 if [[ -d $OMARCHY_BIN ]] && ask "also install the 'omarchy voice ...' commands into $OMARCHY_BIN (needs sudo)?"; then
-  if sudo install -m 755 "$SOURCE"/omarchy/bin/omarchy-voice* "$OMARCHY_BIN/"; then
+  if sudo install -m 755 "$SOURCE"/omarchy/bin/jarvis-voice* "$OMARCHY_BIN/"; then
     echo "   installed. Try: omarchy voice doctor"
   else
-    warn "could not install them; 'omarchy-voice' still works on its own."
+    warn "could not install them; 'jarvis-voice' still works on its own."
   fi
 fi
 
 if ask "install the systemd user service (starts with your session)?"; then
   mkdir -p "$UNITDIR"
-  cp "$SOURCE/share/omarchy-voice.service" "$UNITDIR/"
+  cp "$SOURCE/share/jarvis-voice.service" "$UNITDIR/"
   systemctl --user daemon-reload
-  systemctl --user enable omarchy-voice.service
-  echo "   enabled. Start it now with: systemctl --user start omarchy-voice"
+  systemctl --user enable jarvis-voice.service
+  echo "   enabled. Start it now with: systemctl --user start jarvis-voice"
 fi
 
 # --- keybindings -----------------------------------------------------------
@@ -158,17 +158,17 @@ BINDINGS="$HOME/.config/hypr/bindings.lua"
 if [[ ! -f "$BINDINGS" ]]; then
   warn "$BINDINGS does not exist. Add this by hand:"
   sed 's/^/     /' "$SOURCE/share/bindings.lua.snippet"
-elif grep -q 'omarchy-voice' "$BINDINGS"; then
+elif grep -q 'jarvis-voice' "$BINDINGS"; then
   echo "   already bound in $BINDINGS"
 elif ask "bind SUPER + SHIFT + V in $BINDINGS?"; then
   cp "$BINDINGS" "$BINDINGS.bak-voice"
   cat >> "$BINDINGS" <<'LUA'
 
--- omarchy-voice ------------------------------------------------------------
+-- jarvis-voice ------------------------------------------------------------
 -- Avoids SUPER + V (Universal paste) and SUPER + CTRL + V (clipboard manager).
 -- Listening is off until this key turns it on, and off again when it does.
-if o.cmd_present("omarchy-voice") then
-  o.bind("SUPER + SHIFT + V", "Toggle voice control", "omarchy-voice listen toggle")
+if o.cmd_present("jarvis-voice") then
+  o.bind("SUPER + SHIFT + V", "Toggle voice control", "jarvis-voice listen toggle")
 end
 LUA
   echo "   appended, backup at $BINDINGS.bak-voice"
@@ -184,6 +184,6 @@ fi
 echo
 bold "next"
 echo "   edit $ENVFILE                put OPENAI_API_KEY=sk-... in it"
-echo "   omarchy-voice doctor              check every moving part"
-echo "   omarchy-voice --dry-run say \"...\"  try a command without a microphone"
-echo "   systemctl --user start omarchy-voice"
+echo "   jarvis-voice doctor              check every moving part"
+echo "   jarvis-voice --dry-run say \"...\"  try a command without a microphone"
+echo "   systemctl --user start jarvis-voice"
