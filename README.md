@@ -116,7 +116,7 @@ Kept from upstream, unchanged, because it is the right shape:
 | --- | --- |
 | Desktop executor, policy gate, capability discovery, OCR, browser, camera | ✅ from upstream |
 | Live transport skeleton | ✅ from upstream |
-| Client-delegation mode (`{"type": "client"}`) | 🚧 branch in progress |
+| Client-delegation mode (`{"type": "client"}`) | ✅ verified end-to-end — paid probe, `tools/check_client_delegation.py` |
 | Jarvis backend adapter (`hermes -z … --continue`) | 🚧 branch in progress |
 | Paperclip routing verbs (create/queue/steer/stop) | 🚧 branch in progress |
 | Task-board summary in the voice session | ⏳ next |
