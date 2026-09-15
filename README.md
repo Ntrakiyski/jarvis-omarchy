@@ -119,7 +119,8 @@ Kept from upstream, unchanged, because it is the right shape:
 | Task-board summary in the voice session | ⏳ next |
 | `bootstrap/` kit (skills, SOUL.md, AGENTS.md, SETUP.md, MCP list) | ⏳ next |
 | Live session + client delegation | ✅ verified end-to-end (`tools/check_client_delegation.py`) |
-| Full microphone run on this machine | ⏳ after install + key |
+| Installed on the reference machine (`~/.local/share/jarvis-voice`, service + `SUPER+SHIFT+V` + bar widget) | ✅ session opens, typed path spoken back |
+| Spoken request → delegation → reply | ⏳ needs a human at the microphone |
 
 ## Install
 

@@ -102,6 +102,7 @@ class ClientVoice:
         self._delegations = 0
         self._limit_notified = False
         self._mic_frames = 0
+        self._muted = False
 
     # --- plumbing ---------------------------------------------------------
 
@@ -163,10 +164,14 @@ class ClientVoice:
         elif action in ("stop", "quit"):
             await self._close_session(action)
         elif action == "mute":
+            self._muted = True
             self.active = False
+            await self._kill_mic()
             self.feedback.state("idle", "muted")
         elif action == "unmute":
-            self.active = self.session_open
+            self._muted = False
+            if self.session_open:
+                self.active = True
         elif action == "say" and text:
             await self._typed.put(text)
         elif action == "status":
@@ -342,8 +347,13 @@ class ClientVoice:
                         answer=reply.text[:300])
             self._history.append(("user", text))
             self._history.append(("assistant", reply.text))
-            await self._append("commentary" if self.session_open else "commentary",
-                               reply.text, None)
+            if self.session_open:
+                await self._append("commentary", reply.text, None)
+            else:
+                # No session to speak it: say so in the state the bar widget and
+                # `status --json` read, rather than answering into the void.
+                self.feedback.state("idle", reply.text[:80])
+                self.feedback.log(f"say     {reply.text[:200]}")
 
     # --- connection -------------------------------------------------------
 
@@ -360,7 +370,10 @@ class ClientVoice:
             if event.get("type") != "session.started":
                 raise RuntimeError(f"session.start refused: {json.dumps(event)[:300]}")
             self.session_open = True
-            self.active = bool(self.active)
+            # A session opens for speaking, so the microphone follows it —
+            # unless the user muted while it was still connecting.
+            if not self._muted:
+                self.active = True
             self._started_at = time.monotonic()
             self._limit_notified = False
             self._trace("session.started", id=event.get("session", {}).get("id", ""))

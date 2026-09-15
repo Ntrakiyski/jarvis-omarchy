@@ -16,7 +16,8 @@ from .planner import Planner
 from .session import daemon_running, send_control
 from .tools import Executor
 
-LISTEN_ACTIONS = ("toggle", "start", "stop", "quit", "confirm", "cancel", "say")
+LISTEN_ACTIONS = ("toggle", "start", "stop", "quit", "confirm", "cancel", "say",
+                  "mute", "unmute")   # mute closes the recorder, not the session
 
 
 def _bold(text: str) -> str:

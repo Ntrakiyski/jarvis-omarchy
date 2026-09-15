@@ -16,24 +16,6 @@ step() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
 ask()  { read -rp "   $1 [y/N] " reply; [[ "$reply" =~ ^[Yy] ]]; }
 
-# Install one package, checking pacman's sync databases first. A fresh or
-# long-idle machine can have no databases at all, and then `pacman -S` fails
-# with "database file for 'extra' does not exist". Never fatal: a missing
-# optional package must not abandon a half-finished install.
-pacman_install() {
-  local pkg="$1"
-  if ! compgen -G "/var/lib/pacman/sync/*.db" >/dev/null 2>&1 \
-     || ! pacman -Sp "$pkg" >/dev/null 2>&1; then
-    warn "pacman's sync databases are missing or too stale to find $pkg."
-    if ask "refresh them with 'sudo pacman -Sy'?"; then
-      sudo pacman -Sy || { warn "could not refresh the databases"; return 1; }
-    else
-      return 1
-    fi
-  fi
-  sudo pacman -S --needed --noconfirm "$pkg"
-}
-
 bold "jarvis-voice installer"
 echo "OpenAI Live or Realtime voice control for Omarchy."
 echo
@@ -51,7 +33,7 @@ fi
 # --- files -----------------------------------------------------------------
 step "installing to $PREFIX"
 mkdir -p "$PREFIX" "$BINDIR" "$CONFIGDIR"
-rm -rf "$PREFIX/src" "$PREFIX/bin" "$PREFIX/share" "$PREFIX/omarchy" "$PREFIX/.venv"
+rm -rf "$PREFIX/src" "$PREFIX/bin" "$PREFIX/share" "$PREFIX/omarchy"
 cp -r "$SOURCE/src" "$SOURCE/bin" "$SOURCE/share" "$SOURCE/omarchy" "$PREFIX/"
 touch "$PREFIX/.jarvis-voice-install"
 chmod +x "$PREFIX/bin/jarvis-voice"
@@ -90,16 +72,29 @@ case ":$PATH:" in
   *) warn "$BINDIR is not on your PATH — add it, or the keybindings will not work." ;;
 esac
 
-# --- realtime --------------------------------------------------------------
+# --- python environment ----------------------------------------------------
+# The launcher prefers a private environment beside the install root, so the
+# daemon never depends on whichever python3 is first on PATH: a systemd user
+# service and an interactive shell resolve PATH differently, and a mise/uv
+# python bump would otherwise break voice silently. No pacman, no sudo.
 echo
-step "OpenAI Realtime"
-if python3 -c "import websockets" 2>/dev/null; then
-  echo "   python-websockets already installed"
-elif ask "install python-websockets with pacman?"; then
-  pacman_install python-websockets \
-    || warn "not installed — the daemon cannot connect without it"
+step "python environment"
+if [[ ! -x "$PREFIX/.venv/bin/python" ]]; then
+  python3 -m venv "$PREFIX/.venv" || warn "could not create $PREFIX/.venv"
+fi
+if [[ -x "$PREFIX/.venv/bin/python" ]]; then
+  if "$PREFIX/.venv/bin/python" -c "import websockets" 2>/dev/null; then
+    echo "   websockets already present in $PREFIX/.venv"
+  else
+    "$PREFIX/.venv/bin/python" -m pip install --quiet --upgrade pip >/dev/null 2>&1 || true
+    if "$PREFIX/.venv/bin/python" -m pip install --quiet 'websockets>=14,<17'; then
+      echo "   installed websockets into $PREFIX/.venv"
+    else
+      warn "could not install websockets — the daemon cannot connect without it"
+    fi
+  fi
 else
-  warn "skipped — the daemon cannot connect without it"
+  warn "no private environment; the daemon will use whatever python3 PATH finds"
 fi
 
 if grep -q "^OPENAI_API_KEY=.\+" "$ENVFILE" 2>/dev/null || [[ -n "${OPENAI_API_KEY:-}" ]]; then
