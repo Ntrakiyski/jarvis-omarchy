@@ -28,7 +28,7 @@ from collections import deque
 
 from . import backend as backend_mod
 from . import realtime
-from .jobs import Jobs
+from .jobs import Jobs, active_jobs
 from .sessions import Sessions
 from .config import Config
 from .feedback import Feedback
@@ -213,6 +213,7 @@ class ClientVoice:
         self.backend.session_jobs = []
         self._trace("session.new", id=fresh["id"], name=fresh["name"], stopped=stopped)
         self.feedback.log(f"session {fresh['name']} · stopped {len(stopped)} job(s)")
+        self.feedback.jobs = 0
         self.feedback.state("listening" if self.active else "idle",
                             f"new session · {len(stopped)} stopped" if stopped else "new session")
 
@@ -230,6 +231,10 @@ class ClientVoice:
                                  item["title"], item["status"], item["created_at"])
         self.backend.session_jobs = [j.identifier for j in self.sessions.jobs(row["id"])]
         self.backend.session_label = row["name"]
+        count = active_jobs(items)
+        if count != self.feedback.jobs:
+            self.feedback.jobs = count
+            self.feedback.publish()
 
     async def _close_session(self, why: str) -> None:
         self._wanted.clear()
@@ -436,6 +441,7 @@ class ClientVoice:
                 self.backend.session = f"jarvis-voice-{fresh['id']}"
                 self.backend.session_label = fresh["name"]
                 self._trace("session.open", id=fresh["id"], name=fresh["name"])
+            await asyncio.to_thread(self._sync_jobs)
             # A session opens for speaking, so the microphone follows it —
             # unless the user muted while it was still connecting.
             if not self._muted:
@@ -470,11 +476,17 @@ class ClientVoice:
                 await self._kill_mic()
 
     async def _housekeeping(self) -> None:
-        """Session limit, and closing a paused session before it bills forever."""
+        """Session limit, the paused-session close, and the job count the orb draws."""
         limit = self.config.live_max_session_seconds
         paused_limit = self.config.live_paused_idle_seconds
+        ticks = 0
         while self.session_open and not self._stop.is_set():
             await asyncio.sleep(1.0)
+            ticks += 1
+            if ticks % 10 == 0:
+                # Jobs change without anything being said; re-read them so the
+                # orb thickens on its own rather than only when someone speaks.
+                await asyncio.to_thread(self._sync_jobs)
             if (paused_limit and self._muted and self._paused_at
                     and time.monotonic() - self._paused_at >= paused_limit):
                 self._paused_at = 0.0

@@ -23,6 +23,7 @@ The database lives beside the other state (``~/.local/state/jarvis-voice``), mod
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,9 +73,16 @@ class Sessions:
     def __init__(self, path: Path | str = DB_FILE):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(str(self.path), timeout=10)
+        # The daemon reads this from the event loop and from worker threads
+        # (`asyncio.to_thread`), and sqlite3 refuses a connection used across
+        # threads unless it is told to allow it. One lock, every statement, so
+        # "allow" cannot turn into "race".
+        self._play_lock = threading.RLock()
+        self._db = sqlite3.connect(str(self.path), timeout=10,
+                                   check_same_thread=False)
         self._db.row_factory = sqlite3.Row
-        self._db.executescript(SCHEMA)
+        with self._play_lock:
+            self._db.executescript(SCHEMA)
         try:
             self.path.chmod(0o600)
         except OSError:
@@ -86,28 +94,32 @@ class Sessions:
         """Start a session, closing any that was left open."""
         now = at or time.time()
         self.close()
-        cursor = self._db.execute(
-            "INSERT INTO sessions (name, started_at) VALUES (?, ?)",
-            (name or session_name(now), now))
-        self._db.commit()
-        return int(cursor.lastrowid)
+        with self._play_lock:
+            cursor = self._db.execute(
+                "INSERT INTO sessions (name, started_at) VALUES (?, ?)",
+                (name or session_name(now), now))
+            self._db.commit()
+            return int(cursor.lastrowid or 0)
 
     def close(self, session_id: int | None = None) -> int:
         """Close the given session (or the open one). Returns how many were open."""
-        if session_id is None:
-            cursor = self._db.execute(
-                "UPDATE sessions SET ended_at = ? WHERE ended_at IS NULL", (time.time(),))
-        else:
-            cursor = self._db.execute(
-                "UPDATE sessions SET ended_at = ? WHERE id = ? AND ended_at IS NULL",
-                (time.time(), session_id))
-        self._db.commit()
-        return cursor.rowcount
+        with self._play_lock:
+            if session_id is None:
+                cursor = self._db.execute(
+                    "UPDATE sessions SET ended_at = ? WHERE ended_at IS NULL",
+                    (time.time(),))
+            else:
+                cursor = self._db.execute(
+                    "UPDATE sessions SET ended_at = ? WHERE id = ? AND ended_at IS NULL",
+                    (time.time(), session_id))
+            self._db.commit()
+            return cursor.rowcount
 
     def current(self) -> sqlite3.Row | None:
-        return self._db.execute(
-            "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1"
-        ).fetchone()
+        with self._play_lock:
+            return self._db.execute(
+                "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1"
+            ).fetchone()
 
     def ensure(self, name: str | None = None) -> sqlite3.Row:
         row = self.current()
@@ -118,39 +130,45 @@ class Sessions:
         return row
 
     def recent(self, limit: int = 10) -> list[sqlite3.Row]:
-        return self._db.execute(
-            "SELECT * FROM sessions ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        with self._play_lock:
+            return self._db.execute(
+                "SELECT * FROM sessions ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
 
     # --- jobs -------------------------------------------------------------
 
     def record(self, session_id: int, identifier: str, issue_id: str, title: str,
                status: str, created_at: float) -> None:
-        self._db.execute(
-            """INSERT INTO jobs (identifier, issue_id, session_id, title, status,
+        with self._play_lock:
+            self._db.execute(
+                """INSERT INTO jobs (identifier, issue_id, session_id, title, status,
                                  created_at, seen_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(identifier) DO UPDATE SET
                  status = excluded.status,
                  title = excluded.title,
                  seen_at = excluded.seen_at""",
-            (identifier, issue_id, session_id, title, status, created_at, time.time()))
-        self._db.commit()
+                (identifier, issue_id, session_id, title, status, created_at,
+                 time.time()))
+            self._db.commit()
 
     def jobs(self, session_id: int, include_stopped: bool = False) -> list[JobRecord]:
         sql = "SELECT * FROM jobs WHERE session_id = ?"
         if not include_stopped:
             sql += " AND stopped_at IS NULL"
         sql += " ORDER BY created_at DESC"
+        with self._play_lock:
+            rows = self._db.execute(sql, (session_id,)).fetchall()
         return [JobRecord(r["identifier"], r["issue_id"], r["title"], r["status"],
-                          r["created_at"], r["stopped_at"])
-                for r in self._db.execute(sql, (session_id,)).fetchall()]
+                          r["created_at"], r["stopped_at"]) for r in rows]
 
     def mark_stopped(self, identifier: str) -> None:
-        self._db.execute("UPDATE jobs SET stopped_at = ? WHERE identifier = ?",
-                         (time.time(), identifier))
-        self._db.commit()
+        with self._play_lock:
+            self._db.execute("UPDATE jobs SET stopped_at = ? WHERE identifier = ?",
+                             (time.time(), identifier))
+            self._db.commit()
 
     def forget_session(self, session_id: int) -> None:
         """Drop a session's job rows — used when its jobs were stopped and cleared."""
-        self._db.execute("DELETE FROM jobs WHERE session_id = ?", (session_id,))
-        self._db.commit()
+        with self._play_lock:
+            self._db.execute("DELETE FROM jobs WHERE session_id = ?", (session_id,))
+            self._db.commit()

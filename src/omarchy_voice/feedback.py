@@ -36,16 +36,35 @@ class Feedback:
         RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
         STATE_DIR.mkdir(parents=True, exist_ok=True)
         self._level_at = 0.0
+        self._last: tuple[str, str] | None = None
+        # How many background jobs this session is holding. Published with every
+        # state write so a face can draw them without its own API access.
+        self.jobs = 0
 
     # -- bar state ----------------------------------------------------------
     def state(self, status: str, text: str = "") -> None:
         """Write the current status where a bar widget can poll it."""
+        self._last = (status, text)
+        self._write(status, text)
+
+    def publish(self) -> None:
+        """Rewrite the state file with the current fields.
+
+        Needed because `jobs` changes on its own — a job finishing is not a status
+        transition, and a face that only hears about transitions would keep drawing
+        the count from whenever the status last changed.
+        """
+        if self._last is not None:
+            self._write(*self._last)
+
+    def _write(self, status: str, text: str) -> None:
         payload = {
             "status": status,
             "icon": ICONS.get(status, ICONS["idle"]),
             "text": text,
             "class": status,
             "updated": time.time(),
+            "jobs": int(self.jobs),
         }
         tmp = STATE_FILE.with_suffix(".tmp")
         tmp.write_text(json.dumps(payload))

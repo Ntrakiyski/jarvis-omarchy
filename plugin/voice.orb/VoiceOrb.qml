@@ -55,6 +55,10 @@ Item {
   property real youLevel: 0
   property real omaLevel: 0
   property real updatedAt: 0
+  // Background jobs the work plane is holding for this session (from state.json).
+  // Zero is the honest default: an orb that cannot see the jobs must not draw
+  // them.
+  property int jobs: 0
   // Bumped by a slow timer so the staleness check below re-evaluates.
   property real nowSeconds: Date.now() / 1000
 
@@ -80,7 +84,25 @@ Item {
   }
 
   readonly property real coreSize: 54
-  readonly property real haloSize: 190
+  // One line while she is thinking; one line per job being worked, so the ring
+  // thickens with the work instead of spinning identically for one job or six.
+  // Capped so a busy day cannot grow a spiral off the screen.
+  readonly property int maxArcs: 9
+  readonly property int arcCount: Math.min(maxArcs,
+                                           Math.max(root.jobs,
+                                                    root.status === "thinking" ? 1 : 0))
+  // The circle expands with the work: a couple of jobs sit in the same footprint
+  // as the plain orb, and beyond that the halo grows a ring at a time so the
+  // lines never crowd the speech bars or each other.
+  readonly property real haloSize: 190 + Math.max(0, arcCount - 2) * 22
+  // Radii of the spinning lines: outside the speech bars, spread evenly to the
+  // edge the halo currently offers.
+  function arcRadius(ring) {
+    const base = coreSize / 2 + 47
+    const outer = haloSize / 2 - 7
+    if (arcCount <= 1) return base
+    return base + (outer - base) * (ring / (arcCount - 1))
+  }
 
   // Only speech should move it. The daemon already gates room tone to zero;
   // this keeps the orb still during "thinking", when the mic is open but the
@@ -135,6 +157,7 @@ Item {
         root.status = parsed.status || "idle"
         root.label = parsed.text || ""
         root.updatedAt = Number(parsed.updated) || 0
+        root.jobs = Math.max(0, Number(parsed.jobs) || 0)
       } catch (e) {
         root.status = "error"
         root.label = ""
@@ -353,33 +376,51 @@ Item {
           }
         }
 
-        // ---- rotating arc, only while thinking -----------------------------
-        Canvas {
-          id: arc
-          anchors.centerIn: parent
-          width: root.coreSize + 20
-          height: root.coreSize + 20
-          visible: root.status === "thinking"
-          renderStrategy: Canvas.Cooperative
-          onPaint: {
-            const ctx = getContext("2d")
-            ctx.reset()
-            const c = width / 2
-            ctx.lineWidth = 2
-            ctx.lineCap = "round"
-            ctx.strokeStyle = root.rgba(root.tint, 1.0)
-            ctx.beginPath()
-            ctx.arc(c, c, c - 2, -Math.PI / 2, Math.PI * 0.35)
-            ctx.stroke()
-          }
-          Connections {
-            target: root
-            function onTintChanged() { arc.requestPaint() }
-          }
-          RotationAnimator on rotation {
-            running: arc.visible
-            loops: Animation.Infinite
-            from: 0; to: 360; duration: 1400
+        // ---- rotating lines: one per active background job -----------------
+        // The loading arc grew a family. Concentric rings, each turning its own
+        // way: alternating direction so they read as separate lines rather than
+        // one blur, and slowing as they widen so the outermost is calm. Every
+        // line is the same tint as the orb — theme changes re-tint all of them.
+        Repeater {
+          model: root.arcCount
+          delegate: Canvas {
+            id: arcLine
+            property int ring: index
+            anchors.centerIn: parent
+            width: root.arcRadius(ring) * 2 + 6
+            height: width
+            visible: root.arcCount > 0
+            renderStrategy: Canvas.Cooperative
+            onPaint: {
+              const ctx = getContext("2d")
+              ctx.reset()
+              const c = width / 2
+              ctx.lineWidth = ring === 0 ? 2.6 : 2.1
+              ctx.lineCap = "round"
+              // Opacity falls outward, so the innermost line still reads as the
+              // active one and the outermost do not shout.
+              ctx.strokeStyle = root.rgba(root.tint,
+                                          Math.max(0.55, 1.0 - ring * 0.05))
+              // Stagger the sweep so the lines do not all start together.
+              const start = -Math.PI / 2 + ring * 0.45
+              // Inner lines are short and quick (one job each), outer lines run
+              // longer so the family reads as separate strands, not one blur.
+              const sweep = Math.PI * (0.30 + Math.min(3, ring) * 0.16)
+              ctx.beginPath()
+              ctx.arc(c, c, c - 2, start, start + sweep)
+              ctx.stroke()
+            }
+            Connections {
+              target: root
+              function onTintChanged() { arcLine.requestPaint() }
+            }
+            RotationAnimator on rotation {
+              running: arcLine.visible
+              loops: Animation.Infinite
+              from: 0
+              to: arcLine.ring % 2 === 0 ? 360 : -360
+              duration: 1400 + arcLine.ring * 260
+            }
           }
         }
 

@@ -134,6 +134,17 @@ class StopTests(unittest.TestCase):
         self.assertEqual(len(self.patched), 1)
 
 
+class ActiveCountTests(unittest.TestCase):
+    def test_only_unfinished_work_counts_as_active(self):
+        items = [{"status": "todo"}, {"status": "in_progress"}, {"status": "blocked"},
+                 {"status": "in_review"}, {"status": "backlog"}, {"status": "done"},
+                 {"status": "cancelled"}]
+        self.assertEqual(jobs.active_jobs(items), 5)
+
+    def test_an_empty_board_is_zero(self):
+        self.assertEqual(jobs.active_jobs([]), 0)
+
+
 class CardTests(unittest.TestCase):
     def test_every_status_has_a_label_and_a_tone(self):
         for status in ("todo", "backlog", "in_progress", "in_review", "blocked",

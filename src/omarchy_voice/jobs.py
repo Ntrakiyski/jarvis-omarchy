@@ -275,6 +275,13 @@ class Jobs:
         return self._cache
 
 
+def active_jobs(items: list[dict]) -> int:
+    """How many of these jobs are still going: working or waiting on a person."""
+    return sum(1 for item in items
+               if item.get("status") in ("todo", "backlog", "in_progress",
+                                         "in_review", "blocked"))
+
+
 def _epoch(value) -> float:
     if isinstance(value, (int, float)):
         return float(value) / (1000 if value > 1e11 else 1)
