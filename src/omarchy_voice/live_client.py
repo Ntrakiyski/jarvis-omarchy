@@ -323,7 +323,7 @@ class ClientVoice:
         """Run one backend turn and hand the verified text back to the voice."""
         if not utterance:
             utterance = "(the user spoke; no transcript reached this process)"
-        self.feedback.state("working", utterance[:60])
+        self.feedback.state("thinking", utterance[:60])
         context = "\n".join(f"{role}: {text}" for role, text in self._history)
         reply = await self.backend.ask(utterance, context=context)
         self._trace("backend.turn", ok=reply.ok, seconds=round(reply.seconds, 2),
@@ -342,7 +342,9 @@ class ClientVoice:
             text = await self._typed.get()
             if not text:
                 continue
+            self.feedback.state("thinking", text[:60])
             reply = await self.backend.ask(text, context="")
+            self.feedback.state("listening" if self.active else "idle")
             self._trace("backend.typed", ok=reply.ok, seconds=round(reply.seconds, 2),
                         answer=reply.text[:300])
             self._history.append(("user", text))

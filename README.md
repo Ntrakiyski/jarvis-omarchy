@@ -163,6 +163,21 @@ Press **Super + Shift + V** (or click the bar widget) to toggle listening. Liste
 starts off and stays off until you turn it on; muting stops the recorder rather than
 capturing and discarding.
 
+## What you see
+
+Two faces over one state file — `$XDG_RUNTIME_DIR/jarvis-voice/state.json`, rewritten on
+every transition, so neither can show a previous run's data:
+
+- **Bar widget** (`voice.indicator`, right section): a microphone icon that lights up
+  while listening or thinking; click toggles, or confirms a held action. Tooltip carries
+  the live line.
+- **Voice orb** (`voice.orb`, panel): a themed orb at the bottom of the screen while the
+  session is awake — accent-tinted and breathing with whoever is talking, a rotating arc
+  while the backend works, urgent tint for a confirmation or an error. Hidden while idle.
+  Click-through: empty input region, no keyboard focus, so it never takes a click.
+
+Nothing on screen while it is off: no session, no recorder, no overlay.
+
 ## Everyday commands
 
 | Command | Purpose |

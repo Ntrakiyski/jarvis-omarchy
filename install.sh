@@ -113,15 +113,24 @@ if ! command -v ffmpeg >/dev/null || ! command -v ffplay >/dev/null; then
 fi
 echo
 step "desktop integration"
-if [[ -d "$HOME/.config/omarchy" ]] && ask "install the bar widget plugin?"; then
+if [[ -d "$HOME/.config/omarchy" ]] && ask "install the bar widget and the voice orb?"; then
   mkdir -p "$PLUGINDIR"
-  cp -r "$SOURCE/plugin/voice.indicator" "$PLUGINDIR/"
+  cp -r "$SOURCE/plugin/voice.indicator" "$SOURCE/plugin/voice.orb" "$PLUGINDIR/"
   echo "   installed to $PLUGINDIR"
   if command -v omarchy >/dev/null && omarchy bar put voice.indicator --section right >/dev/null 2>&1; then
-    echo "   placed on the bar, right section"
+    echo "   bar widget placed, right section"
   else
-    warn "could not place it automatically. Add it with:"
+    warn "could not place the bar widget automatically. Add it with:"
     echo "     omarchy bar put voice.indicator --section right"
+  fi
+  # The orb is a panel, not a bar item: it appears at the bottom of the screen
+  # only while the session is awake, and it is click-through, so it never
+  # steals a click.
+  command -v omarchy-shell >/dev/null && omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
+  if command -v omarchy >/dev/null && omarchy plugin enable voice.orb >/dev/null 2>&1; then
+    echo "   voice orb enabled (bottom of screen while listening)"
+  else
+    warn "enable the orb with: omarchy-shell shell rescanPlugins && omarchy plugin enable voice.orb"
   fi
 fi
 
