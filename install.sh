@@ -33,7 +33,7 @@ fi
 # --- files -----------------------------------------------------------------
 step "installing to $PREFIX"
 mkdir -p "$PREFIX" "$BINDIR" "$CONFIGDIR"
-rm -rf "$PREFIX/src" "$PREFIX/bin" "$PREFIX/share" "$PREFIX/omarchy"
+rm -rf "${PREFIX:?}/src" "${PREFIX:?}/bin" "${PREFIX:?}/share" "${PREFIX:?}/omarchy"
 cp -r "$SOURCE/src" "$SOURCE/bin" "$SOURCE/share" "$SOURCE/omarchy" "$PREFIX/"
 touch "$PREFIX/.jarvis-voice-install"
 chmod +x "$PREFIX/bin/jarvis-voice"
