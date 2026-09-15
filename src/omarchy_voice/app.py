@@ -148,10 +148,28 @@ def unit_active() -> bool:
 
 
 def focus_window() -> bool:
-    result = subprocess.run(
+    """Raise the window — and report honestly whether there was one to raise.
+
+    ``hyprctl dispatch`` answers "ok" for a dispatch that matched nothing, so the
+    only evidence a window exists is asking for the client list.
+    """
+    if not window_present():
+        return False
+    subprocess.run(
         ["hyprctl", "dispatch", "focuswindow", f"class:^({PROGRAM})$"],
         capture_output=True, text=True)
-    return "ok" in result.stdout.lower()
+    return True
+
+
+def window_present() -> bool:
+    """Is a window of ours actually mapped? A running unit is not evidence."""
+    result = subprocess.run(["hyprctl", "clients", "-j"],
+                            capture_output=True, text=True)
+    try:
+        clients = json.loads(result.stdout)
+    except (ValueError, TypeError):
+        return False
+    return any(client.get("class") == PROGRAM for client in clients)
 
 
 def launcher_path() -> str:
@@ -162,10 +180,21 @@ def launcher_path() -> str:
 
 
 def open_window() -> str:
-    """Start the window unit, or raise the window if it is already up."""
-    if unit_active():
+    """Start the window unit, or raise the window if it is already up.
+
+    "The unit is active" is not the same question as "the window is on screen":
+    a process that lost its window (a compositor restart, a surface that never
+    mapped) leaves the unit active and a window nowhere, and every later open
+    would then be a no-op against a ghost. So the unit only counts as open when
+    a window of ours is really mapped; otherwise the ghost is stopped and a
+    fresh one is started.
+    """
+    if unit_active() and window_present():
         focus_window()
         return "window already open"
+    if unit_active():
+        close_window()
+        time.sleep(0.4)
     result = subprocess.run(
         ["systemd-run", "--user", "--collect", f"--unit={UNIT}",
          "--description=Jarvis voice window",
