@@ -122,6 +122,51 @@ Kept from upstream, unchanged, because it is the right shape:
 | Installed on the reference machine (`~/.local/share/jarvis-voice`, service + `SUPER+SHIFT+V` + bar widget) | ✅ session opens, typed path spoken back |
 | Spoken request → delegation → reply | ⏳ needs a human at the microphone |
 
+## Prerequisites
+
+Longer than "Omarchy and Hermes": the voice window is a GTK app, the desktop tools drive
+Hyprland, and the jobs board reads a work plane. Full walkthrough — and a copy-paste brief
+for your agent — in **[SETUP.md](SETUP.md)**.
+
+**Required**
+
+| What | Why | Where |
+| --- | --- | --- |
+| Omarchy 4.x (Lua-based Hyprland) | the desktop this drives | [omarchy.org](https://omarchy.org) — built against 4.0.3 |
+| `/usr/bin/python3` ≥ 3.11 | the daemon runs on Arch's system Python | `sudo pacman -S python` |
+| `python-gobject`, `gtk4`, `libadwaita` | the Jarvis window | `sudo pacman -S python-gobject gtk4 libadwaita` |
+| PipeWire (`pw-record`, `pw-cat`) | microphone and playback | `sudo pacman -S pipewire-audio` |
+| An OpenAI key **with GPT-Live access** | the voice model (`gpt-live-1`) | [platform.openai.com](https://platform.openai.com) — Live is account-gated |
+| Hermes Agent | the backend that thinks | [hermes-agent.nousresearch.com/docs](https://hermes-agent.nousresearch.com/docs) + a provider key (the reference machine runs `deepseek-flash`) |
+
+**Desktop tools — the assistant's hands.** `jarvis-voice doctor` reports each one:
+
+```sh
+sudo pacman -S hyprland quickshell tmux wtype grim tesseract ffmpeg libnotify
+```
+
+`hyprctl` (windows, workspaces) and `omarchy` (the CLI) arrive with Hyprland and Omarchy;
+`tmux` is how a terminal gets read and typed into, `wtype` types, `grim` screenshots,
+`tesseract` reads text off the screen, `ffmpeg` drives the camera, `libnotify` shows notices.
+
+**Optional — this is what the reference machine runs**
+
+| What | Adds | Install |
+| --- | --- | --- |
+| **Paperclip** | the background-jobs board and durable workers | Node 20+ → `npm install -g paperclipai`, then `paperclipai run` |
+| **scrapling** (MCP) | the agent's web reads and searches | `uv tool install scrapling` then `hermes mcp add scrapling --command ~/.local/bin/scrapling-mcp` |
+| **headroom** (MCP) | context compression | see the `headroom` skill in the reference setup |
+| **rtk-rewrite** (Hermes plugin) | compresses command output before the model sees it | `~/.hermes/plugins/` |
+
+Leave the optional ones out and everything still runs: the board reports "Paperclip
+unreachable" and the agent simply has fewer hands. Everything above is also installed by the
+agent brief in [SETUP.md](SETUP.md#instructions-for-an-agent).
+
+`websockets` is deliberately **not** on this list: `install.sh` builds a private virtualenv
+beside the install and pins it there, so the daemon never depends on whichever `python3` your
+shell happens to resolve — the trap that made voice fail silently on the machine this was
+built on.
+
 ## Install
 
 Requirements: an Omarchy desktop (Lua-based Hyprland), Python 3.11+, PipeWire with a
@@ -270,6 +315,7 @@ scanner are upstream's own (`tools/check_public_files.py --staged`, `--history <
 
 | Guide | Contents |
 | --- | --- |
+| [Setup](SETUP.md) | Fresh machine to working voice, plus a brief to hand your agent |
 | [Client delegation](docs/client-delegation.md) | This fork's voice path: session config, backend contract, routing, failure semantics |
 | [Live backend](docs/live.md) | Upstream's Live path: sessions, limits, audio, engine switching |
 | [Task workers](docs/task-workers.md) | Upstream's worker model (this fork routes to Paperclip) |
