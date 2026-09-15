@@ -102,6 +102,33 @@ The adapter's tests never call Hermes: they run throwaway shell scripts as the
 backend command, covering the verified answer, the timeout, the non-zero exit, the
 empty answer, the missing session retry and the unavailable command.
 
+## The window and the key
+
+`jarvis-voice-app` is the face: a GTK4 window (status, both loudness meters, a
+Listen/Pause/Resume button, an End session button, and a real close button) that
+launches from the app menu and runs as its own transient systemd user unit — a
+bare `Gtk.Application` inside an agent shell fails to register ("the name is not
+activatable"), and the unit gives single-instance for free.
+
+One key, three meanings, resolved from live state rather than assumed:
+
+| state | `jarvis-voice-app toggle` does |
+| --- | --- |
+| no session | **start** — open a session and listen |
+| listening / thinking | **pause** — close the recorder, keep the session |
+| paused | **resume** — reopen the recorder in that same session |
+
+Pause must not end the take: the daemon's own `toggle` opens and closes sessions,
+so using it here would kill the conversation on a pause. Closing the window ends
+the session, and a session left paused is closed by the daemon after
+`live_paused_idle_seconds` — connected time bills whether or not anyone speaks.
+
+Note on Hyprland (Omarchy 4, Lua config): `hyprctl keyword` is refused
+("keyword can't work with non-legacy parsers"), and a new binding only enters the
+running compositor after `hyprctl reload` — the Lua is re-evaluated then, not on
+file change. `hyprctl eval` executes Lua against the live compositor if a
+one-off is needed.
+
 ## Failure semantics worth keeping
 
 - Muting stops the recorder; it does not end the session, so a delegated turn keeps
