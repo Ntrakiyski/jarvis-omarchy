@@ -129,6 +129,15 @@ running compositor after `hyprctl reload` — the Lua is re-evaluated then, not 
 file change. `hyprctl eval` executes Lua against the live compositor if a
 one-off is needed.
 
+## The jobs board
+
+`jobs.py` reads the local Paperclip company (`GET /api/companies/{id}/issues`, no
+auth on loopback) and maps its statuses onto four columns: working (todo, backlog,
+in_progress), needs-you (blocked, in_review), done, cancelled. Cards show the real
+status word, an age, the assigned agent, and sort newest-first; the board refreshes
+every three seconds behind a five-second cache. An unreachable server keeps the last
+good board and says so in the header line rather than emptying itself.
+
 ## Failure semantics worth keeping
 
 - Muting stops the recorder; it does not end the session, so a delegated turn keeps

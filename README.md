@@ -165,6 +165,23 @@ capturing and discarding.
 
 ## What you see
 
+The Jarvis window (`jarvis-voice-app`, in the app menu) is the whole picture in one
+view: status and loudness meters, the listen/pause control, and — below it — the
+**background jobs** board, read straight from the local Paperclip server as a kanban:
+
+| column | holds | real statuses |
+| --- | --- | --- |
+| **Working** | queued and running jobs | `todo`, `backlog`, `in_progress` |
+| **Needs you** | jobs stopped on a decision | `blocked`, `in_review` |
+| **Done** | finished | `done` |
+| **Cancelled** | stopped on purpose | `cancelled` |
+
+Cards keep Paperclip's own word ("blocked", "in review", "queued"), so folding
+`in_review` under *Needs you* cannot hide what the work plane actually thinks. The
+read is loopback-only and carries no credentials: the local server answers company
+reads to the local user, and only the URL and company id are read from
+`~/.hermes/.env` — never the secrets in it.
+
 Two faces over one state file — `$XDG_RUNTIME_DIR/jarvis-voice/state.json`, rewritten on
 every transition, so neither can show a previous run's data:
 

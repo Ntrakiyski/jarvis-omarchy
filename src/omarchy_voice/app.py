@@ -36,16 +36,31 @@ import time
 from pathlib import Path
 
 from .config import LEVEL_FILE, STATE_FILE, Config, load
+from .jobs import COLUMNS, Board, Jobs
 from .session import daemon_running, send_control
 
 UNIT = "jarvis-voice-window"
 PROGRAM = "jarvis-voice"
 TICK_MS = 200
+JOBS_MS = 3000
 
 STATUS_TEXT = {"idle": "Idle", "listening": "Listening", "thinking": "Working",
                "paused": "Paused", "error": "Error"}
 STATUS_COLOR = {"idle": "#7a7a7a", "listening": "#22aa88", "thinking": "#e0b341",
                 "paused": "#b08040", "error": "#cc4444"}
+CARD_CSS = b"""
+.job-card { background-color: alpha(currentColor, 0.07); border-radius: 9px;
+            padding: 8px 10px; }
+.job-id { opacity: 0.8; font-feature-settings: "tnum"; }
+.job-title { font-size: 13px; opacity: 0.95; }
+.kanban-head { font-weight: bold; opacity: 0.85; }
+.tone-go { color: #22aa88; opacity: 0.95; }
+.tone-ok { color: #22aa88; opacity: 0.8; }
+.tone-warn { color: #e0b341; }
+.tone-bad { color: #dd5555; font-weight: bold; }
+.tone-dim { opacity: 0.55; }
+"""
+
 STATUS_HINT = {
     "idle": "Press SUPER + SHIFT + V to listen",
     "listening": "Say something — the key pauses, the same key resumes",
@@ -151,7 +166,7 @@ def open_window() -> str:
         return "window already open"
     result = subprocess.run(
         ["systemd-run", "--user", "--collect", f"--unit={UNIT}",
-         f"--description=Jarvis voice window",
+         "--description=Jarvis voice window",
          "--", launcher_path(), "window"],
         capture_output=True, text=True)
     if result.returncode != 0:
@@ -180,7 +195,13 @@ def run_window(config: Config) -> int:
             super().__init__(title="Jarvis")
             self.config = config
             self.status = "idle"
-            self.set_default_size(430, 250)
+            self.jobs = Jobs()
+            self._column_bodies: dict[str, object] = {}
+            self._column_counts: dict[str, object] = {}
+            # Four columns need width; the compositor is free to override, so
+            # ask for a floor as well as a default.
+            self.set_default_size(1080, 820)
+            self.set_size_request(880, 560)
 
             header = Gtk.HeaderBar()
             self.dot = Gtk.Label(label="●")
@@ -196,8 +217,6 @@ def run_window(config: Config) -> int:
             self.set_titlebar(header)
 
             body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-            for edge in ("top", "bottom", "start", "end"):
-                getattr(body, f"set_margin_{edge}")(22)
 
             self.status_label = Gtk.Label(label="Idle", xalign=0)
             self.status_label.set_markup("<span size='xx-large'>Idle</span>")
@@ -221,9 +240,100 @@ def run_window(config: Config) -> int:
             hint.add_css_class("dim-label")
             body.append(hint)
 
-            self.set_child(body)
+            outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+            for edge in ("top", "bottom", "start", "end"):
+                getattr(outer, f"set_margin_{edge}")(18)
+            outer.append(body)
+            outer.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+            outer.append(self._jobs_page())
+
+            css = Gtk.CssProvider()
+            css.load_from_data(CARD_CSS)
+            Gtk.StyleContext.add_provider_for_display(
+                self.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+            self.set_child(outer)
             self.connect("close-request", self._on_close)
             GLib.timeout_add(TICK_MS, self._tick)
+            GLib.timeout_add(JOBS_MS, self._refresh_jobs)
+            self._refresh_jobs()
+
+        # --- the jobs board ------------------------------------------------
+
+        def _jobs_page(self):
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8,
+                            vexpand=True)
+            heading = Gtk.Label(xalign=0)
+            heading.set_markup("<b>Background jobs</b>")
+            page.append(heading)
+            self.jobs_note = Gtk.Label(label="reading Paperclip…", xalign=0)
+            self.jobs_note.add_css_class("dim-label")
+            page.append(self.jobs_note)
+            board = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10,
+                             homogeneous=True, vexpand=True)
+            for key, heading, _statuses in COLUMNS:
+                column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+                head = Gtk.Label(label=heading, xalign=0)
+                head.add_css_class("kanban-head")
+                column.append(head)
+                self._column_counts[key] = head
+                scroller = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
+                scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+                inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+                scroller.set_child(inner)
+                column.append(scroller)
+                self._column_bodies[key] = inner
+                board.append(column)
+            page.append(board)
+            return page
+
+        def _card(self, card) -> Gtk.Widget:
+            frame = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+            frame.add_css_class("job-card")
+            top = Gtk.Label(xalign=0)
+            top.set_markup(f"<span size='small'>{card.identifier}</span>")
+            top.add_css_class("job-id")
+            frame.append(top)
+            title = Gtk.Label(label=card.title, xalign=0, wrap=True, lines=3)
+            title.set_ellipsize(3)  # Pango.EllipsizeMode.END
+            title.add_css_class("job-title")
+            frame.append(title)
+            meta = Gtk.Label(xalign=0)
+            who = f" · {card.agent}" if card.agent else ""
+            meta.set_markup(
+                f"<span size='small'>{card.label} · {card.age}{who}</span>")
+            meta.add_css_class(f"tone-{card.tone}")
+            frame.append(meta)
+            return frame
+
+        def _refresh_jobs(self) -> bool:
+            board: Board = self.jobs.fetch()
+            for key, heading, cards in board.columns:
+                body = self._column_bodies.get(key)
+                if body is None:
+                    continue
+                child = body.get_first_child()
+                while child is not None:
+                    nxt = child.get_next_sibling()
+                    body.remove(child)
+                    child = nxt
+                if not cards:
+                    empty = Gtk.Label(label="nothing here" if key == "working" else "—",
+                                      xalign=0.5)
+                    empty.add_css_class("tone-dim")
+                    empty.set_margin_top(6)
+                    body.append(empty)
+                for card in cards[:40]:
+                    body.append(self._card(card))
+                head = self._column_counts.get(key)
+                if head is not None:
+                    head.set_text(f"{heading} · {len(cards)}" if cards else heading)
+            if board.error:
+                self.jobs_note.set_text(board.error)
+            else:
+                stamp = time.strftime("%H:%M", time.localtime(board.fetched_at))
+                self.jobs_note.set_text(f"{board.total} background jobs · read {stamp}")
+            return True
 
         def _meter(self, parent, name: str) -> Gtk.ProgressBar:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
