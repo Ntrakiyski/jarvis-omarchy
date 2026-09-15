@@ -37,6 +37,7 @@ from pathlib import Path
 
 from .config import LEVEL_FILE, STATE_FILE, Config, load
 from .jobs import COLUMNS, Board, Jobs
+from .sessions import Sessions
 from .session import daemon_running, send_control
 
 UNIT = "jarvis-voice-window"
@@ -54,6 +55,7 @@ CARD_CSS = b"""
 .job-id { opacity: 0.8; font-feature-settings: "tnum"; }
 .job-title { font-size: 13px; opacity: 0.95; }
 .kanban-head { font-weight: bold; opacity: 0.85; }
+.session-tag { opacity: 0.65; font-size: 11px; }
 .tone-go { color: #22aa88; opacity: 0.95; }
 .tone-ok { color: #22aa88; opacity: 0.8; }
 .tone-warn { color: #e0b341; }
@@ -196,6 +198,7 @@ def run_window(config: Config) -> int:
             self.config = config
             self.status = "idle"
             self.jobs = Jobs()
+            self.sessions = Sessions()
             self._column_bodies: dict[str, object] = {}
             self._column_counts: dict[str, object] = {}
             # Four columns need width; the compositor is free to override, so
@@ -211,9 +214,11 @@ def run_window(config: Config) -> int:
             box.append(self.dot)
             box.append(title)
             header.set_title_widget(box)
-            end = Gtk.Button(label="End session")
-            end.connect("clicked", lambda *_: self._control("stop"))
-            header.pack_end(end)
+            # "New session" is the line the listener draws: it stops this
+            # session's jobs and starts the next one with a clean memory.
+            fresh = Gtk.Button(label="New session")
+            fresh.connect("clicked", lambda *_: self._control("new-session"))
+            header.pack_end(fresh)
             self.set_titlebar(header)
 
             body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -269,17 +274,16 @@ def run_window(config: Config) -> int:
             heading.set_hexpand(True)
             heading.set_halign(Gtk.Align.START)
             top.append(heading)
-            self.only_marked = Gtk.CheckButton(label="only what Jarvis started")
-            self.only_marked.set_active(True)
-            self.only_marked.connect("toggled", self._toggle_filter)
-            top.append(self.only_marked)
+            self.session_label = Gtk.Label(label="", xalign=1)
+            self.session_label.add_css_class("session-tag")
+            top.append(self.session_label)
             page.append(top)
             self.jobs_note = Gtk.Label(label="reading Paperclip…", xalign=0)
             self.jobs_note.add_css_class("dim-label")
             page.append(self.jobs_note)
             board = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10,
                              homogeneous=True, vexpand=True)
-            for key, heading, _statuses in COLUMNS:
+            for key, heading, _statuses, _stoppable in COLUMNS:
                 column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
                 head = Gtk.Label(label=heading, xalign=0)
                 head.add_css_class("kanban-head")
@@ -294,6 +298,14 @@ def run_window(config: Config) -> int:
                 board.append(column)
             page.append(board)
             return page
+
+        def _stop(self, card) -> None:
+            ok, detail = self.jobs.stop(card.issue_id)
+            if ok:
+                self.sessions.mark_stopped(card.identifier)
+            self.detail_label.set_text(
+                f"{card.identifier} {'stopped' if ok else 'could not be stopped (' + detail + ')'}")
+            self._refresh_jobs()
 
         def _card(self, card) -> Gtk.Widget:
             frame = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
@@ -311,15 +323,26 @@ def run_window(config: Config) -> int:
             meta.set_markup(
                 f"<span size='small'>{card.label} · {card.age}{who}</span>")
             meta.add_css_class(f"tone-{card.tone}")
-            frame.append(meta)
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            meta.set_hexpand(True)
+            row.append(meta)
+            if card.stoppable:
+                stop = Gtk.Button(label="stop")
+                stop.add_css_class("flat")
+                stop.set_valign(Gtk.Align.CENTER)
+                stop.set_tooltip_text(f"Cancel {card.identifier} in the work plane")
+                stop.connect("clicked", lambda *_a, c=card: self._stop(c))
+                row.append(stop)
+            frame.append(row)
             return frame
 
-        def _toggle_filter(self, button) -> None:
-            self.jobs.only_marked = button.get_active()
-            self._refresh_jobs()
-
         def _refresh_jobs(self) -> bool:
-            board: Board = self.jobs.fetch()
+            row = self.sessions.current() or self.sessions.ensure()
+            board: Board = self.jobs.fetch(since=row["started_at"])
+            for _key, _heading, cards in board.columns:
+                for card in cards:
+                    self.sessions.record(row["id"], card.identifier, card.issue_id,
+                                         card.title, card.status, card.created)
             for key, heading, cards in board.columns:
                 body = self._column_bodies.get(key)
                 if body is None:
@@ -344,14 +367,17 @@ def run_window(config: Config) -> int:
                 self.jobs_note.set_text(board.error)
             else:
                 stamp = time.strftime("%H:%M", time.localtime(board.fetched_at))
-                width = len(board.columns)
-                if self.jobs.only_marked and board.total == 0:
-                    self.jobs_note.set_text(
-                        f"No jobs started yet · {board.skipped} other jobs hidden "
-                        f"· read {stamp}")
-                else:
+                if board.total:
                     word = "job" if board.total == 1 else "jobs"
-                    self.jobs_note.set_text(f"{board.total} background {word} · read {stamp}")
+                    self.jobs_note.set_text(
+                        f"{board.total} {word} in this session · "
+                        f"{board.active} to stop · read {stamp}")
+                else:
+                    self.jobs_note.set_text(
+                        f"Nothing started in this session yet · read {stamp}")
+            self.session_label.set_text(row["name"])
+            self.session_label.set_tooltip_text(
+                "Press New session to stop this session's jobs and start fresh")
             return True
 
         def _meter(self, parent, name: str) -> Gtk.ProgressBar:
@@ -407,7 +433,8 @@ def run_window(config: Config) -> int:
 
 # --- entry point ------------------------------------------------------------
 
-ACTIONS = ("open", "window", "toggle", "start", "pause", "resume", "stop", "quit")
+ACTIONS = ("open", "window", "toggle", "start", "pause", "resume", "stop", "quit",
+           "new-session")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -431,7 +458,7 @@ def main(argv: list[str] | None = None) -> int:
     # window is there to show it.
     if action == "toggle":
         action = resolve_toggle()
-    if action in ("toggle", "start") and not daemon_running():
+    if action in ("toggle", "start", "new-session") and not daemon_running():
         if not ensure_daemon(config):
             print("jarvis-voice-app: the voice daemon is not running", file=sys.stderr)
             return 1

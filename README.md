@@ -176,6 +176,15 @@ view: status and loudness meters, the listen/pause control, and — below it —
 | **Done** | finished | `done` |
 | **Cancelled** | stopped on purpose | `cancelled` |
 
+**One session at a time.** The board shows the jobs of the *current* session — the ones
+Jarvis started since you last pressed **New session**. That button is the boundary: it
+stops every job of this session in the work plane, drops the local record, and starts the
+next session with a clean memory (the backend runs in a fresh session too, and each turn
+tells it which jobs this session has started). Pressing it is the whole cleanup — no
+checkbox, no hidden jobs.
+
+`working` and `needs you` cards carry a **stop** button that cancels that one job.
+
 **Only what Jarvis started.** Every job Jarvis creates is titled
 `[Jarvis] <topic> · <YYYY-MM-DD HH:MM>`, and the board filters on that marker by
 default (the checkbox turns the filter off). So the board answers one question —

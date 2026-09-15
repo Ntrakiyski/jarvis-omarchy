@@ -138,6 +138,25 @@ status word, an age, the assigned agent, and sort newest-first; the board refres
 every three seconds behind a five-second cache. An unreachable server keeps the last
 good board and says so in the header line rather than emptying itself.
 
+## Sessions, and what New session does
+
+A session is the unit the listener thinks in. The daemon owns its lifecycle and keeps it in
+SQLite (`~/.local/state/jarvis-voice/sessions.db`, mode 600): one open row at a time, closed
+and replaced only by **New session**. The window discovers this session's jobs in Paperclip
+(marked titles, created after the session started), records what it saw, and renders live
+statuses; a stop or a cleanup therefore always has issue ids to work with.
+
+`new-session` on the control socket does the whole thing in order: cancel every marked job
+created since the session began, forget the local rows, close the session, open a new one,
+and rotate the backend's Hermes session (`jarvis-voice-<id>`) so the next conversation starts
+without the last one's context. The turn contract carries the session name and the jobs
+started in it, which is how Jarvis "remembers the work it set running" without keeping it
+forever.
+
+Two rules this encodes: a job that is still alive must never be erased from the board (stop
+first, then forget), and the board's cache is keyed to the session window — a cached board
+from the previous session would otherwise record its jobs into the new one.
+
 ## Failure semantics worth keeping
 
 - Muting stops the recorder; it does not end the session, so a delegated turn keeps

@@ -28,6 +28,8 @@ from collections import deque
 
 from . import backend as backend_mod
 from . import realtime
+from .jobs import Jobs
+from .sessions import Sessions
 from .config import Config
 from .feedback import Feedback
 from .playback import LiveSpeaker
@@ -81,6 +83,9 @@ class ClientVoice:
             extra_args=list(config.backend_extra_args),
         )
         self.trace = Trace(config.state_dir / "client-trace.jsonl")
+        self.sessions = Sessions(config.state_dir / "sessions.db")
+        self.jobs = Jobs()
+        self.session_id = 0
         self.speaker = LiveSpeaker(config.live_sample_rate,
                                    buffer_ms=config.live_playback_buffer_ms,
                                    report=self._perf)
@@ -140,7 +145,7 @@ class ClientVoice:
         if verb in ("status", "state"):
             return self._state_file()
         if verb in ("toggle", "start", "stop", "quit", "mute", "unmute", "pause", "resume",
-                    "say", "listen"):
+                    "say", "listen", "new-session", "new_session"):
             action = verb
             text = rest
             if verb == "listen":
@@ -165,6 +170,8 @@ class ClientVoice:
                 self.feedback.log("gate    session requested")
         elif action in ("stop", "quit"):
             await self._close_session(action)
+        elif action in ("new-session", "new_session"):
+            await self._new_session()
         elif action in ("mute", "pause"):
             # Pause closes the recorder, never the session: the take survives, so
             # coming back is a resume rather than a new conversation.
@@ -185,6 +192,44 @@ class ClientVoice:
             await self._typed.put(text)
         elif action == "status":
             self.feedback.log(self._state_file())
+
+    async def _new_session(self) -> None:
+        """Draw a line: stop this session's jobs, forget them, start fresh.
+
+        The listener presses this when he no longer wants what Jarvis set running.
+        Jobs are cancelled in the work plane first, then the local record is
+        dropped, so a board cannot show a job that is still alive.
+        """
+        row = self.sessions.current()
+        stopped: list[str] = []
+        if row is not None:
+            stopped = await asyncio.to_thread(self.jobs.stop_marked_since, row["started_at"])
+            self.sessions.forget_session(row["id"])
+            self.sessions.close(row["id"])
+        fresh = self.sessions.open()
+        self.session_id = fresh["id"]
+        self.backend.session = f"jarvis-voice-{fresh['id']}"
+        self.backend.session_label = fresh["name"]
+        self.backend.session_jobs = []
+        self._trace("session.new", id=fresh["id"], name=fresh["name"], stopped=stopped)
+        self.feedback.log(f"session {fresh['name']} · stopped {len(stopped)} job(s)")
+        self.feedback.state("listening" if self.active else "idle",
+                            f"new session · {len(stopped)} stopped" if stopped else "new session")
+
+    def _sync_jobs(self) -> None:
+        """Record this session's jobs locally, so context and stops have a source."""
+        row = self.sessions.current()
+        if row is None:
+            return
+        try:
+            items = self.jobs.marked(row["started_at"])
+        except Exception:
+            return
+        for item in items:
+            self.sessions.record(row["id"], item["identifier"], item["issue_id"],
+                                 item["title"], item["status"], item["created_at"])
+        self.backend.session_jobs = [j.identifier for j in self.sessions.jobs(row["id"])]
+        self.backend.session_label = row["name"]
 
     async def _close_session(self, why: str) -> None:
         self._wanted.clear()
@@ -333,6 +378,7 @@ class ClientVoice:
         if not utterance:
             utterance = "(the user spoke; no transcript reached this process)"
         self.feedback.state("thinking", utterance[:60])
+        await asyncio.to_thread(self._sync_jobs)
         context = "\n".join(f"{role}: {text}" for role, text in self._history)
         reply = await self.backend.ask(utterance, context=context)
         self._trace("backend.turn", ok=reply.ok, seconds=round(reply.seconds, 2),
@@ -352,6 +398,7 @@ class ClientVoice:
             if not text:
                 continue
             self.feedback.state("thinking", text[:60])
+            await asyncio.to_thread(self._sync_jobs)
             reply = await self.backend.ask(text, context="")
             self.feedback.state("listening" if self.active else "idle")
             self._trace("backend.typed", ok=reply.ok, seconds=round(reply.seconds, 2),
@@ -381,6 +428,14 @@ class ClientVoice:
             if event.get("type") != "session.started":
                 raise RuntimeError(f"session.start refused: {json.dumps(event)[:300]}")
             self.session_open = True
+            # A voice session always has a DB session behind it, created on its
+            # first connection and only replaced by "new session".
+            if self.sessions.current() is None:
+                fresh = self.sessions.open()
+                self.session_id = fresh["id"]
+                self.backend.session = f"jarvis-voice-{fresh['id']}"
+                self.backend.session_label = fresh["name"]
+                self._trace("session.open", id=fresh["id"], name=fresh["name"])
             # A session opens for speaking, so the microphone follows it —
             # unless the user muted while it was still connecting.
             if not self._muted:

@@ -59,6 +59,10 @@ class Backend:
     extra_args: list[str] = field(default_factory=list)
     max_chars: int = 1500
     bootstrap_text: str = "Reply with exactly: ready"
+    # What this voice session is, and what it has started — so the backend has the
+    # same picture the listener is looking at.
+    session_label: str = ""
+    session_jobs: list[str] = field(default_factory=list)
 
     def available(self) -> str:
         """Empty when the backend looks usable, else the reason it does not."""
@@ -85,6 +89,14 @@ class Backend:
 
     def compose(self, utterance: str, context: str = "") -> str:
         parts = [VOICE_TURN_CONTRACT]
+        if self.session_label:
+            line = f"# This voice session\n{self.session_label}"
+            if self.session_jobs:
+                line += ("\nJobs you started in it, which the listener can stop from "
+                         "the board: " + ", ".join(self.session_jobs))
+            else:
+                line += "\nNo background jobs started in it yet."
+            parts.append(line)
         if context.strip():
             parts.append("# The last few things said out loud\n" + context.strip()[:800])
         parts.append("# What the user just said\n" + utterance.strip())
