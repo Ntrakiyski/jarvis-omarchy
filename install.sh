@@ -155,7 +155,16 @@ if ask "install the systemd user service (starts with your session)?"; then
   cp "$SOURCE/share/jarvis-voice.service" "$UNITDIR/"
   systemctl --user daemon-reload
   systemctl --user enable jarvis-voice.service
-  echo "   enabled. Start it now with: systemctl --user start jarvis-voice"
+  # An update must not leave the old code running: a daemon started before this
+  # install keeps serving the modules it imported at startup, and a stale daemon
+  # answers "ok" to every request while failing to do any of them. Enable is not
+  # enough — restart if it is already up.
+  if systemctl --user is-active --quiet jarvis-voice.service; then
+    systemctl --user restart jarvis-voice.service
+    echo "   was running: restarted onto the installed code."
+  else
+    echo "   enabled. Start it now with: systemctl --user start jarvis-voice"
+  fi
 fi
 
 # --- keybindings -----------------------------------------------------------
