@@ -236,9 +236,9 @@ Item {
       id: stage
       width: root.haloSize
       height: root.haloSize
-      anchors.horizontalCenter: parent.horizontalCenter
-      anchors.bottom: parent.bottom
-      anchors.bottomMargin: 74
+      // Centre of the desktop, not the bottom edge: the orb is the thing you are
+      // talking to, and it belongs where you are already looking.
+      anchors.centerIn: parent
 
       opacity: root.awake ? 1 : 0
       Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }

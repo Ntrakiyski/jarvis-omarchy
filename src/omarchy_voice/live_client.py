@@ -239,6 +239,13 @@ class ClientVoice:
     async def _close_session(self, why: str) -> None:
         self._wanted.clear()
         self.active = False
+        # A pause belongs to the session that was paused, not to the client. Kept
+        # here it outlives its session: the next one opens already muted, with no
+        # recorder, so "start" looks like it did nothing while a session bills in
+        # the background — and the stale pause clock then kills it as "paused too
+        # long" the moment the limit passes.
+        self._muted = False
+        self._paused_at = 0.0
         if self.ws is not None:
             try:
                 await self.ws.send(json.dumps({"type": "session.close"}))
