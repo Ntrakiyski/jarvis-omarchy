@@ -190,6 +190,10 @@ class Config:
     # A connected Live session is billed by time, including silence.
     live_max_session_seconds: float = 1800.0
     live_typed_idle_seconds: float = 15.0
+    # A paused session still costs Live time, so it is closed by itself
+    # after this long with no listening. The conversation survives: the
+    # next session is seeded with it, so resuming reconnects silently.
+    live_paused_idle_seconds: float = 120.0
 
     # --- backend (this fork) -----------------------------------------------
     # The agent that thinks while GPT-Live speaks. One turn per delegation, in

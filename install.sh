@@ -38,10 +38,13 @@ cp -r "$SOURCE/src" "$SOURCE/bin" "$SOURCE/share" "$SOURCE/omarchy" "$PREFIX/"
 touch "$PREFIX/.jarvis-voice-install"
 chmod +x "$PREFIX/bin/jarvis-voice"
 chmod +x "$PREFIX/bin/jarvis-vision"
+chmod +x "$PREFIX/bin/jarvis-voice-app"
 ln -sf "$PREFIX/bin/jarvis-voice" "$BINDIR/jarvis-voice"
 ln -sf "$PREFIX/bin/jarvis-vision" "$BINDIR/jarvis-vision"
+ln -sf "$PREFIX/bin/jarvis-voice-app" "$BINDIR/jarvis-voice-app"
 mkdir -p "$HOME/.local/share/applications"
-cp "$SOURCE/share/jarvis-vision.desktop" "$HOME/.local/share/applications/"
+cp "$SOURCE/share/jarvis-vision.desktop" "$SOURCE/share/jarvis-voice.desktop" \
+   "$HOME/.local/share/applications/"
 echo "   jarvis-voice -> $BINDIR/jarvis-voice"
 
 if [[ ! -f "$CONFIGDIR/config.toml" ]]; then
@@ -170,9 +173,10 @@ elif ask "bind SUPER + SHIFT + V in $BINDINGS?"; then
 
 -- jarvis-voice ------------------------------------------------------------
 -- Avoids SUPER + V (Universal paste) and SUPER + CTRL + V (clipboard manager).
--- Listening is off until this key turns it on, and off again when it does.
-if o.cmd_present("jarvis-voice") then
-  o.bind("SUPER + SHIFT + V", "Toggle voice control", "jarvis-voice listen toggle")
+-- One key, one meaning: start listening, pause the microphone, resume — always
+-- in the same session. It also opens the Jarvis window the first time.
+if o.cmd_present("jarvis-voice-app") then
+  o.bind("SUPER + SHIFT + V", "Jarvis: listen / pause", "jarvis-voice-app toggle")
 end
 LUA
   echo "   appended, backup at $BINDINGS.bak-voice"

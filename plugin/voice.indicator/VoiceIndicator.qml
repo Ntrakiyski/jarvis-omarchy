@@ -15,6 +15,7 @@ BarWidget {
   readonly property var icons: ({
     "stopped":   "󰍭",
     "idle":      "󰍬",
+    "paused":    "󰍭",
     "listening": "󰍬",
     "thinking":  "󱚟",
     "acting":    "󱐋",

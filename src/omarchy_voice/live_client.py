@@ -103,6 +103,7 @@ class ClientVoice:
         self._limit_notified = False
         self._mic_frames = 0
         self._muted = False
+        self._paused_at = 0.0
 
     # --- plumbing ---------------------------------------------------------
 
@@ -138,7 +139,8 @@ class ClientVoice:
             return json.dumps({"error": "not running"})
         if verb in ("status", "state"):
             return self._state_file()
-        if verb in ("toggle", "start", "stop", "quit", "mute", "unmute", "say", "listen"):
+        if verb in ("toggle", "start", "stop", "quit", "mute", "unmute", "pause", "resume",
+                    "say", "listen"):
             action = verb
             text = rest
             if verb == "listen":
@@ -163,15 +165,22 @@ class ClientVoice:
                 self.feedback.log("gate    session requested")
         elif action in ("stop", "quit"):
             await self._close_session(action)
-        elif action == "mute":
+        elif action in ("mute", "pause"):
+            # Pause closes the recorder, never the session: the take survives, so
+            # coming back is a resume rather than a new conversation.
             self._muted = True
             self.active = False
             await self._kill_mic()
-            self.feedback.state("idle", "muted")
-        elif action == "unmute":
+            if self.session_open:
+                self._paused_at = time.monotonic()
+                self.feedback.state("paused", "listening paused")
+            else:
+                self.feedback.state("idle", "paused")
+        elif action in ("unmute", "resume"):
             self._muted = False
             if self.session_open:
                 self.active = True
+                self.feedback.state("listening")
         elif action == "say" and text:
             await self._typed.put(text)
         elif action == "status":
@@ -406,10 +415,17 @@ class ClientVoice:
                 await self._kill_mic()
 
     async def _housekeeping(self) -> None:
-        """Session limit and a slow-backend notice."""
+        """Session limit, and closing a paused session before it bills forever."""
         limit = self.config.live_max_session_seconds
+        paused_limit = self.config.live_paused_idle_seconds
         while self.session_open and not self._stop.is_set():
             await asyncio.sleep(1.0)
+            if (paused_limit and self._muted and self._paused_at
+                    and time.monotonic() - self._paused_at >= paused_limit):
+                self._paused_at = 0.0
+                self.feedback.notify("Voice session closed",
+                                     "Paused and idle; the conversation is kept.")
+                await self._close_session("paused too long")
             if limit and time.monotonic() - self._started_at >= limit and not self._limit_notified:
                 self._limit_notified = True
                 self.feedback.notify("Voice session limit reached",

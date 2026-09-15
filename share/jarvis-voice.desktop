@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Jarvis
+Comment=Voice control for this desktop — SUPER + SHIFT + V to listen
+Exec=jarvis-voice-app open
+Icon=audio-input-microphone
+Terminal=false
+Categories=Utility;Audio;
+Keywords=Jarvis;voice;microphone;listen;
+StartupWMClass=jarvis-voice

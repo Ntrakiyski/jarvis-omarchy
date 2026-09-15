@@ -21,6 +21,7 @@ from .security import redact_text
 
 ICONS = {
     "idle": "󰍬",
+    "paused": "󰍭",
     "listening": "󰍬",
     "thinking": "󱚟",
     "acting": "󱐋",

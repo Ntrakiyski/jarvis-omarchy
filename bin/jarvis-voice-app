@@ -1,0 +1,18 @@
+#!/usr/bin/python3
+"""jarvis-voice-app launcher.
+
+Runs on the system Python on purpose: this is a GTK4 + libadwaita window, and
+PyGObject lives in the distribution's site-packages (Arch's python-gobject),
+not in the private venv the daemon uses. The window needs no websockets and no
+API key — it only reads state files and talks to the daemon's control socket.
+"""
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from omarchy_voice.app import main
+
+if __name__ == "__main__":
+    sys.exit(main())
