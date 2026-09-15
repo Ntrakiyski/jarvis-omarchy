@@ -114,12 +114,27 @@ is closed automatically after two minutes so it cannot bill in the background.
 
 ## 5. The work plane (optional, but this is the board)
 
-The jobs board reads **Paperclip** — a local work plane where every durable job is an issue.
+The jobs board reads **[Paperclip](https://github.com/paperclipai/paperclip)** — a local work
+plane where every durable job is an issue, with an org chart, budgets and an audit trail
+([docs](https://docs.paperclip.ing)).
 
 ```sh
 npm install -g paperclipai      # Node 20+
 paperclipai run                 # serves http://127.0.0.1:3100
 ```
+
+Install the skills that *operate* it — they are in this repo, because writing them again is the
+expensive part:
+
+```sh
+cp -r skills/* ~/.hermes/skills/     # from the repo root
+```
+
+Four come from here (`paperclip-operations`, `paperclip-task-bridge` + its helper,
+`paperclip-harness-dispatch`, `paperclip-scoping-and-access`); four more arrive with the CLI
+itself (`paperclip`, `paperclip-board`, `paperclip-converting-plans-to-tasks`,
+`paperclip-create-agent`) and are symlinked into the npm package — let those update with it.
+[`skills/README.md`](skills/README.md) says which is which.
 
 Then give your agent a scoped key so it can create and stop jobs — that is the
 `paperclip-task-bridge` skill in the reference setup: create a `task_bridge` key and put
@@ -144,8 +159,13 @@ Optional, and worth it:
 
 | What | Why | Install |
 | --- | --- | --- |
-| scrapling MCP | so the agent can read the web at all | `uv tool install scrapling` → `hermes mcp add scrapling --command ~/.local/bin/scrapling-mcp` |
-| skills | the procedures the agent should follow | ship the ones you want in `~/.hermes/skills/` |
+| **scrapling** (MCP) | so the agent can read the web at all | `uv tool install scrapling` → `hermes mcp add scrapling --command ~/.local/bin/scrapling-mcp` |
+| **headroom** (MCP) | compresses tool output so long sessions stay affordable | see `hermes mcp add --help`; the reference setup runs it on `127.0.0.1:8787` |
+| **shared living memory** (MCP, several seats) | knowledge that outlives a session, queried by the agent | any MCP server exposing recall/remember; the reference setup runs a self-hosted one and registers one seat per agent |
+| **skills** | the procedures the agent should follow | `cp -r skills/* ~/.hermes/skills/` for the Paperclip ones; add whatever else you want it to know |
+
+None of this is required for voice to work. It is what makes the agent *yours* rather than
+generic — and it is the difference between "it can talk" and "it runs my work".
 
 ## 7. Traps that cost us time
 

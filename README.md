@@ -153,7 +153,7 @@ sudo pacman -S hyprland quickshell tmux wtype grim tesseract ffmpeg libnotify
 
 | What | Adds | Install |
 | --- | --- | --- |
-| **Paperclip** | the background-jobs board and durable workers | Node 20+ → `npm install -g paperclipai`, then `paperclipai run` |
+| **[Paperclip](https://github.com/paperclipai/paperclip)** ([docs](https://docs.paperclip.ing)) | the background-jobs board and durable workers | Node 20+ → `npm install -g paperclipai`, then `paperclipai run`; the skills that operate it are in [`skills/`](skills/README.md) |
 | **scrapling** (MCP) | the agent's web reads and searches | `uv tool install scrapling` then `hermes mcp add scrapling --command ~/.local/bin/scrapling-mcp` |
 | **headroom** (MCP) | context compression | see the `headroom` skill in the reference setup |
 | **rtk-rewrite** (Hermes plugin) | compresses command output before the model sees it | `~/.hermes/plugins/` |
@@ -316,6 +316,7 @@ scanner are upstream's own (`tools/check_public_files.py --staged`, `--history <
 | Guide | Contents |
 | --- | --- |
 | [Setup](SETUP.md) | Fresh machine to working voice, plus a brief to hand your agent |
+| [Skills](skills/README.md) | The Paperclip operating skills this setup runs, and what the CLI ships instead |
 | [Client delegation](docs/client-delegation.md) | This fork's voice path: session config, backend contract, routing, failure semantics |
 | [Live backend](docs/live.md) | Upstream's Live path: sessions, limits, audio, engine switching |
 | [Task workers](docs/task-workers.md) | Upstream's worker model (this fork routes to Paperclip) |
