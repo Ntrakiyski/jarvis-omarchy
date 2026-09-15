@@ -1,157 +1,242 @@
-# omarchy-voice
+# Jarvis for Omarchy
 
-Voice control for the Omarchy desktop. Ask OMA to move windows, open applications,
-read a page, or manage a background task. OpenAI handles speech and planning;
-local tools carry out desktop actions through a policy gate.
+A voice-driven operator for an Omarchy desktop: **GPT-Live 1 talks, Jarvis thinks,
+Paperclip works.** The voice model handles the spoken conversation; a local agent
+(Hermes) owns the reasoning, the desktop tools, the safety gate, and durable work.
+
+Built on [`wombatoperator/omarchy-voice`](https://github.com/wombatoperator/omarchy-voice)
+(MIT) — same executor, policy gate and desktop toolset — with the voice/backend seam
+changed so the brain stays on your machine.
 
 **Experimental · Omarchy with Lua-based Hyprland · Python 3.11+ · MIT**
 
-## What it does
+> Paths below describe the `jarvis/live-client-delegation` branch. On `main` the
+> upstream `omarchy-voice` names still apply until that branch is merged.
 
-- Controls applications, windows, workspaces, and desktop settings.
-- Reads browser pages and managed terminals, with OCR when text is unavailable.
-- Discovers commands, shortcuts, and applications from your installed system.
-- Supports Realtime voice and an optional Live backend with delegated tasks.
-- Runs durable coding and analysis tasks with saved artifacts and verification.
-- Inspects physical objects through an on-demand camera preview with configurable
-  cloud or local vision models, cropping, and gentle sharpening.
+## Why this fork exists
 
-Example requests:
+| | Upstream | This fork |
+| --- | --- | --- |
+| Voice engine | Realtime default, Live as an evaluated alternative | **Live (`gpt-live-1`) default** — full duplex, `$0.05/min` |
+| Delegation | Responses delegation (hosted OpenAI model does the thinking) | **Client delegation** — any agent harness, here: Hermes |
+| Backend brain | `gpt-5.6-terra` on the provider's side | **Jarvis** (Hermes Agent, `deepseek-flash`) on your machine |
+| Durable work | Built-in task workers | **Paperclip** — create / queue / steer / stop |
+| Ship-along kit | — | `bootstrap/` — the skills and files that make it *Jarvis* |
 
-- “Move this window to workspace three.”
-- “Open a terminal beside the browser.”
-- “Read the current page.”
-- “Look at this connector.”
-- “Tell me when the build finishes.”
+Three reasons that matter:
 
-OMA starts muted. While listening is enabled, microphone audio goes to OpenAI.
-Page text, screenshots, and tool results may also be sent when a task uses them.
-Camera inspections send a selected frame to the configured vision endpoint.
-Cloud API usage is billed to your account. Read the [security policy](SECURITY.md) before
-using an agent with your desktop and signed-in applications.
+1. **The brain is local.** Tool calls, files, memory and task state never leave the
+   machine. The cloud sees the spoken audio and the delegations it must answer.
+2. **One agent, many faces.** Voice and desktop share one Jarvis — same skills, same
+   memory, same work plane — instead of a second agent with a duplicated tool layer.
+3. **Nothing is decided twice.** Routing, permissions and confirmations live in one
+   place (the backend + its policy gate), so a voice request and a typed request
+   cannot behave differently.
+
+## How it works
+
+```
+   you speak
+      │
+      ▼
+┌─────────────────────────────┐        full duplex, interrupts mid-sentence
+│  GPT-Live 1  (voice)        │◄────── session: v1/live/sessions   $0.05/min
+│  listens · speaks · relays  │        carries a live task-board summary
+└──────────┬──────────────────┘
+           │ session.delegation.created  (client delegation)
+           ▼
+┌─────────────────────────────┐
+│  Jarvis  (backend agent)    │        Hermes Agent · deepseek-flash
+│  reasons · decides · acts   │        hermes -z … --continue jarvis-voice
+└────┬───────────────┬────────┘
+     │               │
+     │               ▼
+     │      ┌──────────────────────┐    create · queue · steer · stop
+     │      │  Paperclip           │    durable background work
+     │      └──────────────────────┘
+     ▼
+┌─────────────────────────────┐
+│  Desktop tools + policy gate│        Hyprland · Omarchy CLI · tmux
+│  hypr_dispatch · send_keys  │        OCR · browser · camera · policy
+└──────────┬──────────────────┘
+           │ verified result only
+           ▼
+   session.commentary.append → GPT-Live speaks it
+```
+
+The loop in words:
+
+1. **GPT-Live** carries the conversation. It is listening while it speaks, so you can
+   interrupt it mid-sentence. It never claims an action happened — it has no hands.
+2. Every desktop request is **delegated** to the backend: `session.delegation.created`
+   arrives with an id, and the transcript is the task text.
+3. **Jarvis** receives it, decides what it is — a quick answer, a desktop action, or
+   background work — and executes through the same tools and policy gate it uses
+   anywhere else.
+4. The result goes back with `session.commentary.append`, and GPT-Live says it out
+   loud in one short sentence. Quiet progress (`thinking.append`) is used while work
+   is still running, so silence never reads as a crash.
+
+### The routing decision
+
+The backend chooses one verb per request, from the conversation plus live task state:
+
+| You say | Verb | Effect |
+| --- | --- | --- |
+| "open workspace three and put the browser there" | **act** | desktop tool call, verified before it is spoken |
+| "what's on my screen?" | **read** | screen/OCR/terminal read, answer only |
+| "also make it handle unicode" | **steer** | message into the running task |
+| "start that after the parser finishes" | **queue** | new task, dependency-linked |
+| "forget it" | **stop** | cancel the task |
+| "now do something else entirely" | **create** | new task |
+
+The voice layer carries a summary of the board (running / queued / blocked) so it can
+*ask* the right question out loud — "the parser task is still running, add it there or
+start a new one?" — but the decision is made where the state is: in the backend.
+
+### The safety gate
+
+Kept from upstream, unchanged, because it is the right shape:
+
+- **Deny list** — refused outright, whatever the model decides: `rm -rf`, `mkfs`,
+  `dd if=`, `sudo`, `pkexec`, `curl … | sh`, `git push`, `ssh`, `close-all`.
+- **Confirm list** — held until you say the word: shutdown, reboot, suspend, package
+  installs, `omarchy update`.
+- **Machine-checked confirmation.** The model must pass the words you *actually said*
+  to `confirm_last`; the machine matches them against its own phrase list and refuses
+  otherwise. The model cannot confirm on your behalf, and not in the same turn that
+  raised the hold.
+- Shell execution is off by default (`[hands] allow_shell = false`). On, the model can
+  run arbitrary commands on an open microphone — which is exactly as large a hole as
+  it sounds.
+
+## Status
+
+| Part | State |
+| --- | --- |
+| Desktop executor, policy gate, capability discovery, OCR, browser, camera | ✅ from upstream |
+| Live transport skeleton | ✅ from upstream |
+| Client-delegation mode (`{"type": "client"}`) | 🚧 branch in progress |
+| Jarvis backend adapter (`hermes -z … --continue`) | 🚧 branch in progress |
+| Paperclip routing verbs (create/queue/steer/stop) | 🚧 branch in progress |
+| Task-board summary in the voice session | ⏳ next |
+| `bootstrap/` kit (skills, SOUL.md, AGENTS.md, SETUP.md, MCP list) | ⏳ next |
+| Live end-to-end run with a real key | ⏳ needs `gpt-live-1` account access |
 
 ## Install
 
-You need an Omarchy desktop, Python 3.11 or later, PipeWire with a working
-microphone/output device, and an OpenAI API key with access to the configured
-models. The installer can install Arch's `python-websockets` package. Individual
-tools may also need `tmux`, `wtype`, `ydotool`, `grim`, or `tesseract`; `doctor`
-reports available desktop capabilities. Camera vision also needs FFmpeg
-(`ffmpeg` and `ffplay`) and a supported V4L2 camera; see [OMA Vision](docs/vision.md).
+Requirements: an Omarchy desktop (Lua-based Hyprland), Python 3.11+, PipeWire with a
+working mic and output, `python-websockets` (Arch package), plus `tmux`, `wtype`,
+`grim` and `tesseract` for the terminal/OCR paths. Camera vision needs FFmpeg. A
+Hermes Agent install (`~/.hermes`) is required for the backend — see the kit.
 
 ```sh
-git clone https://github.com/wombatoperator/omarchy-voice.git
-cd omarchy-voice
+git clone https://github.com/Ntrakiyski/jarvis-omarchy.git
+cd jarvis-omarchy
+git switch jarvis/live-client-delegation   # while the work is in flight
 ./install.sh
 ```
 
-Run the installer as your desktop user. It copies the application and asks before
-adding the bar widget, systemd user service, keybinding, or optional
-`omarchy voice` command aliases. It preserves existing configuration and backs up
-keybindings before editing them.
-
-Add your API key to `~/.config/omarchy-voice/env` using your editor:
+Then put your key where the daemon can read it — one line, `chmod 600`:
 
 ```sh
-OPENAI_API_KEY=your-api-key
+# ~/.config/jarvis-voice/env
+OPENAI_API_KEY=your-key-with-gpt-live-1-access
 ```
 
-Keep that file private (`chmod 600 ~/.config/omarchy-voice/env`). A key exported
-only in a terminal is not automatically available to the systemd service.
+The backend does **not** read that file: Hermes keeps its own credentials in
+`~/.hermes/.env`. `jarvis-voice doctor` reports what it can see.
 
 ```sh
-omarchy-voice doctor
-systemctl --user start omarchy-voice  # if you installed the user service
+jarvis-voice doctor
+systemctl --user start jarvis-voice     # if you installed the user service
 ```
 
-Without the service, run `omarchy-voice run` in a terminal. Press
-**Super + Shift + V** if you installed the binding, or click the bar widget, to
-toggle listening. The indicator shows listening, working, and confirmation states.
-Clicking it while a confirmation is pending confirms the held action.
+Press **Super + Shift + V** (or click the bar widget) to toggle listening. Listening
+starts off and stays off until you turn it on; muting stops the recorder rather than
+capturing and discarding.
 
 ## Everyday commands
 
 | Command | Purpose |
 | --- | --- |
-| `omarchy-voice listen toggle` | Start or stop listening in the running daemon |
-| `omarchy-voice listen confirm` | Confirm a held action locally |
-| `omarchy-voice listen cancel` | Cancel a held confirmation; Live also cancels unstarted tool calls |
-| `omarchy-voice say "open a terminal"` | Send a typed request to the one-shot planner |
-| `omarchy-voice --dry-run say "open a terminal"` | Preview changing actions; still permits read-only queries and API use |
-| `omarchy-vision start` | Open the local camera preview without an API call |
-| `omarchy-vision stop` | Close the camera preview and release capture |
-| `omarchy-voice status --json` | Inspect daemon state |
-| `omarchy-voice map` | Explore local capabilities without an API request |
-| `omarchy-voice log -f` | Follow private diagnostic logs |
-
-Muting stops the recorder. It does not undo an action already started or cancel
-independent background workers. Manage those with `omarchy-voice task`.
+| `jarvis-voice listen toggle` | Start or stop listening in the running daemon |
+| `jarvis-voice listen confirm` / `listen cancel` | Confirm or drop a held action locally |
+| `jarvis-voice say "open a terminal"` | Type a request instead of speaking it |
+| `jarvis-voice map` | Explore the installed desktop's capabilities, no API call |
+| `jarvis-voice status --json` | Inspect daemon state |
+| `jarvis-voice log -f` | Follow private diagnostic logs |
 
 ## Configuration
 
-Edit `~/.config/omarchy-voice/config.toml`. The commented
-[configuration example](share/config.example.toml) lists defaults and optional
-settings. Restart the idle daemon after changes.
-
-The Python application honors `XDG_CONFIG_HOME`, `XDG_STATE_HOME`,
-`XDG_CACHE_HOME`, and `XDG_RUNTIME_DIR`. The installer, uninstaller, and supplied
-service use the standard home-directory paths shown here. Custom XDG layouts or
-an alternate install `PREFIX` need corresponding service/configuration changes.
-
-Realtime is the default voice engine. To select Live:
+`~/.config/jarvis-voice/config.toml` — the commented
+[configuration example](share/config.example.toml) lists every default.
 
 ```toml
 [openai]
-engine = "live"
+engine = "live"                     # live (default here) | realtime
+
+[live]
+voice = "marin"
+max_session_seconds = 1800          # a connected session is billed by time
+
+[backend]                            # this fork: who does the thinking
+command = "hermes"
+session = "jarvis-voice"
+model   = "deepseek-flash"
+timeout_seconds = 120
+
+[ears]
+barge_in = false                    # headphones or PipeWire AEC before enabling
 ```
 
-See [Live setup](docs/live.md) for model access, session limits, audio behavior,
-and switching engines. Shell execution is disabled by default. Confirmation
-rules reduce mistakes but do not make desktop automation a sandbox.
+## The kit (`bootstrap/`)
 
-For speakers, leave `barge_in = false` under `[ears]` to reduce echo-triggered
-commands. Use headphones or configure PipeWire echo cancellation before enabling
-interruptions; an [example configuration](share/echo-cancel.conf) is included.
+The point of this repo is that a friend can end up with the same assistant, not just
+the same daemon. The kit carries the parts that make the setup *ours* — and nothing
+that makes it *private*:
 
-## Documentation and support
+- **Identity files**: `SOUL.md`, `AGENTS.md`, `SETUP.md` — the operating contract.
+- **Skills we wrote**: the machine-specific ones (foundation, voice pipeline, Hyprland
+  control, Paperclip operations, context tooling, web access…). Vendored skills are
+  *referenced and installed*, never copied — copies drift and misattribute licences.
+- **MCP servers**: `scrapling` (web), `slm-*` (self-hosted memory), `headroom`
+  (context compression).
+- **Inventory**: packages, cron jobs, `bin/` helpers, the `rtk-rewrite` plugin —
+  generated from a live machine.
+- **Installer + doctor**: `bootstrap/install.sh` and a checker that reports what a new
+  machine is missing.
+
+Deliberately excluded, by construction: `.env` and every credential, `state.db`,
+`memories/`, `sessions/`, `logs/`, `state-snapshots/`. Publication rules and the
+scanner are upstream's own (`tools/check_public_files.py --staged`, `--history <rev>`,
+`git config core.hooksPath .githooks`).
+
+## Documentation
 
 | Guide | Contents |
 | --- | --- |
-| [Live backend](docs/live.md) | Setup, usage controls, browser delegation, recovery |
-| [Task workers](docs/task-workers.md) | Submit, inspect, cancel, and resume durable work |
-| [OMA Vision](docs/vision.md) | Camera setup, model switching, crop, privacy, and latency |
-| [Diagnostics](docs/diagnostics.md) | Troubleshooting, latency, and private logs |
-| [System discovery](docs/omarchy-architecture.md) | How OMA reads the installed desktop's capabilities |
-| [Security](SECURITY.md) | Data sharing, execution boundaries, private disclosure |
-| [Contributing](CONTRIBUTING.md) | Development setup, tests, and pull requests |
-
-For bugs, [open an issue](https://github.com/wombatoperator/omarchy-voice/issues/new/choose)
-with your versions, reproduction steps, and expected behavior. Review any excerpt
-before attaching it. Report security vulnerabilities through the private process
-in [SECURITY.md](SECURITY.md).
-
-## Uninstall
-
-From your clone, run `./uninstall.sh`. It removes the installed application and
-integration, preserving configuration, logs, and task artifacts. Cancel active
-background workers first. `./uninstall.sh --purge` also deletes
-`~/.config/omarchy-voice` and `~/.local/state/omarchy-voice`. Custom XDG paths and
-task roots outside those directories remain. The default cache is removed in
-both modes.
+| [Live backend](docs/live.md) | Sessions, limits, audio, engine switching |
+| [Task workers](docs/task-workers.md) | Upstream's worker model (this fork routes to Paperclip) |
+| [Vision](docs/vision.md) | Camera setup, crop, privacy, latency |
+| [Diagnostics](docs/diagnostics.md) | Troubleshooting, latency, private logs |
+| [System discovery](docs/omarchy-architecture.md) | How the agent reads the installed desktop |
+| [Security](SECURITY.md) | Data sharing, execution boundaries, disclosure |
 
 ## Development
 
 ```sh
-python3 -m venv .venv
-. .venv/bin/activate
+python3 -m venv .venv && . .venv/bin/activate
 python -m pip install -e '.[dev]'
 python -m unittest discover -s tests
 ```
 
-The Python package provides `omarchy-voice` and `omarchy-vision`; the installer
-handles desktop integration.
-Unit tests use synthetic inputs and mocked providers, plus local test sockets.
-Paid API and real-desktop checks are separate, opt-in commands described in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Unit tests are offline: synthetic audio, mocked providers, fake desktops. Paid and
+real-desktop checks are explicit opt-ins.
 
-Licensed under the [MIT License](LICENSE).
+## Credits
+
+Fork of [wombatoperator/omarchy-voice](https://github.com/wombatoperator/omarchy-voice)
+(MIT) — the executor, policy gate, capability discovery and much of the hard-won
+behaviour in this tree are his work. This fork changes the voice/backend seam and
+ships the personal-agent kit. Licensed under the [MIT License](LICENSE).
